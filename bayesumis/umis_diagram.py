@@ -116,28 +116,28 @@ class UmisDiagram(object):
         try:
             self.__add_processes(processes)
         except Exception as err:
-            print("Error when adding processes: {}".format(err))
+            raise Exception(err)
 
         try:
             self.__add_internal_flows(internal_flows)
         except Exception as err:
-            print("Error when adding internal flows: {}".format(err))
+            raise Exception(err)
 
         try:
             self.__add_external_inflows(external_inflows)
         except Exception as err:
-            print("Error when adding external inflows: {}".format(err))
+            raise Exception(err)
 
         try:
             self.__add_external_outflows(external_outflows)
         except Exception as err:
-            print("Error when adding external outflows: {}".format(err))
+            raise Exception(err)
 
     def __add_processes(self, processes: list):
         """Adds processes to dict with validation"""
 
-        if len(processes <= 2):
-            raise ValueError("Processes must be of at least length 2")
+        if len(processes) < 2:
+            raise ValueError("Must add at least 2 processes")
 
         process_types = [self.__add_process(p) for p in processes]
 
