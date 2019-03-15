@@ -1,185 +1,70 @@
 """Classes for a graph of processes and flows"""
-import collections.abc
 import sys
-from typing import List, Mapping, Optional, Union
+from typing import List, Mapping, Set
+
+from bayesumis.umis_data_models import (
+    DistributionProcess,
+    Flow,
+    Material,
+    Process,
+    TransformationProcess,
+    Value)
 
 
-class Uncertainty():
-    """ Superclass for representating uncertainty around a stock or flow value.
-    Representations must have an expected value to use for display """
+class UmisDiagram():
+    """
+    Representation of a UMIS diagram, serves to add new processes and
+    flows whilst ensuring that they are legal.
 
-    def __init__(
-            self,
-            name: str,
-            mean: float):
-        """
-        name: Name of distribution
-        mean: Expected value
-        """
-        self.name = name
-        self.mean = mean
+    Attributes
+    ----------
 
+    reference_material (Material): Material whose stocks and flows are being
+        structured
 
-class UniformUncertainty(Uncertainty):
-    """ Uncertainty represented by a uniform distribution """
+    reference_time (int): Time snapshot that the diagram pertains to
+    processes (processes): List of all processes for this UMIS diagram
 
-    def __init__(
-            self,
-            lower: float,
-            upper: float):
+    external_inflows (list(Process)): List of flows into processes from
+        outside the diagram
 
-        assert(upper > lower)
-        assert(lower >= 0)
+    internal_flows (list(Flow)): List of flows between processes in the diagram
 
-        self.lower = lower
-        self.upper = upper
+    external_outflows (list(Flow)): List of flows from processes to outside
+        the diagram
 
-        mean = (upper + lower) / 2
-        super().__init__("Uniform", mean)
-
-
-class NormalUncertainty(Uncertainty):
-    """ Uncertainty represented by a normal distribution """
-
-    def __init__(
-            self,
-            mean: float,
-            standard_deviation: float):
-
-        assert(mean >= 0)
-
-        self.standard_deviation = standard_deviation
-        super().__init__("Normal", mean)
-
-
-class LogNormalUncertainty(Uncertainty):
-    """ Uncertainty represented by a log-normal distribution """
-
-    def __init__(
-            self,
-            mean: float,
-            standard_deviation: float):
-
-        assert(mean >= 0)
-
-        self.standard_deviation = standard_deviation
-        super().__init__("Log-Normal", mean)
-
-
-class Space():
-    """ Information representing the space/location a value refers to.
-    Currently very prototypical and does not reflect the entirety of the data
-    stored about a location in STAFDB"""
+    process_outflow_dict (dict(Process, list(Flow)): Mapping from processes to
+        their outflows
+    """
 
     def __init__(
                 self,
-                uuid: str,
-                name: str):
-
-        self.uuid = uuid
-        self.name = name
-
-
-class Value():
-    """ A value for a stock or a flow stored in STAFDB """
-
-    def __init__(
-            self,
-            quantity: float,
-            unit: str,
-            uncertainty: Uncertainty,
-            space: Space):
-
-        self.quantity = quantity
-        self.unit = unit
-        self.uncertainty = uncertainty
-        self.space = space
-
-
-class TransformationProcess(collections.abc.Hashable):
-    """ A transformation process """
-
-    def __init__(
-            self,
-            uuid: str,
-            name: str,
-            is_separator: bool,
-            parent_id: str,
-            stock: Optional[Value] = None):
-
-        """Constructs a transformation process object"""
-        self.uuid = uuid
-        self.name = name
-        self.is_separator = is_separator
-        self.parent_id = parent_id
-        self.stock = stock
-
-    def __eq__(self, process_b):
-        return self.uuid == process_b.uuid
-
-    def __hash__(self):
-        return self.uuid.__hash__()
-
-
-class DistributionProcess(collections.abc.Hashable):
-    """ A distribution process """
-
-    def __init__(
-            self,
-            uuid: str,
-            name: str,
-            is_separator: bool,
-            parent_id: str):
-        """ Creates a distribution process """
-        self.uuid = uuid
-        self.name = name
-        self.is_separator = is_separator
-        self.parent_id = parent_id
-
-    def __eq__(self, process_b):
-        return self.uuid == process_b.uuid
-
-    def __hash__(self):
-        return self.uuid.__hash__()
-
-
-Process = Union[TransformationProcess, DistributionProcess]
-
-
-class Flow(object):
-    """A flow between transformative and distributive processes"""
-    def __init__(
-                self,
-                origin: Process,
-                destination: Process,
-                value: float):
-        """Represents the flow of stock from one process to another origin
-        must be of a different process type than destination"""
-        pass
-
-
-class UmisDiagram(object):
-    """Representation of a UMIS diagram, serves to add new processes and
-    flows whilst ensuring that they are legal."""
-
-    def __init__(
-                self,
+                reference_material: Material,
+                reference_time: int,
                 processes: List[Process],
                 external_inflows: List[Flow],
                 internal_flows: List[Flow],
                 external_outflows: List[Flow]):
-        """Initializes a diagram from its components and ensures that it is valid
+        """
+        Initializes a diagram from its components and ensures that it is valid
         within UMIS definitions
 
+        Args
+        ----
+
+        reference_material: Material whose stocks and flows are being
+            structured
+
+        reference_time: Time snapshot that the diagram pertains to
         processes: List of all processes for this UMIS diagram
         external_inflows: List of flows into processes from outside the diagram
         internal_flows: List of flows between processes in the diagram
         external_outflows: List of flows from processes to outside the diagram
         """
 
-        self.process_outflows_dict: Mapping[Process, List[Flow]] = {}
-        """Mapping from processes to their outflows, must be a dictionary"""
-
+        self.reference_material = reference_material
+        self.reference_time = reference_time
+  
         try:
             self.__add_processes(processes)
         except Exception as err:
@@ -200,13 +85,19 @@ class UmisDiagram(object):
         except Exception as err:
             raise Exception(err)
 
-        self.__check_fully_connected()
+    def __add_processes(self, processes: List[Process]):
+        """
+        Adds processes to dict with validation
 
-    def __add_processes(self, processes: list):
-        """Adds processes to dict with validation"""
+        Args
+        ----
+        processes (list(process)): List of processes to be added
+        """
 
         if len(processes) < 2:
             raise ValueError("Must add at least 2 processes")
+
+        self.process_outflows_dict: Mapping[Process, Set[Flow]] = {}
 
         process_types = [self.__add_process(p) for p in processes]
 
@@ -220,9 +111,19 @@ class UmisDiagram(object):
 
         return
 
-    def __add_process(self, process):
-        """Adds a new process to the diagram, returns 'T' if the process
-        is a transformation process and 'D' if it is distribution"""
+    def __add_process(self, process: Process) -> str:
+        """
+        Adds a new process to the diagram
+
+        Args
+        ----
+        process (Process): Process to be added
+
+        Returns
+        -------
+        returns 'T' if the process is a transformation process and
+        'D' if it is distribution
+        """
 
         if process in self.process_outflows_dict:
             raise ValueError(
@@ -231,6 +132,12 @@ class UmisDiagram(object):
 
         if isinstance(process, TransformationProcess):
             process_type = 'T'
+
+            if process.stock:
+                (valid, msg) = self.__is_value_valid(process.stock)
+                if not valid:
+                    raise ValueError("Process stock ({}) was invalid: {}"
+                                     .format(process.stock, msg))
         else:
             if isinstance(process, DistributionProcess):
                 process_type = 'D'
@@ -239,27 +146,114 @@ class UmisDiagram(object):
                     "process is of type {}:".format(type(process)) +
                     " TransformationProcess or DistributionProcess expected")
 
-        self.process_outflows_dict[process] = []
+        self.process_outflows_dict[process] = set()
 
         return process_type
 
-    def __add_internal_flows(self, flow: Flow):
-        """ Checks legality of internal flow and adds it to the diagram """
-        
-        pass
+    def __add_internal_flows(self, flows: List[Flow]):
+        """
+        Checks legality of all internal flows and adds them to the diagram
 
-    def __add_external_outflows(self, flow: Flow):
-        """Checks legality of outflow and adds it to the diagram"""
-        pass
+        Args
+        ----
 
-    def __add_external_inflows(self, flow: Flow):
-        """Checks legality of inflow and adds it to the diagram"""
-        pass
+        flows (list(Flow)): List of internal flows
+        """
 
-    def __check_fully_connected(self):
-        """ Ensures that the resultant diagram is a fully connected set of
-        processes """
-        pass
+        for flow in flows:
+            origin_process = flow.origin
+            if origin_process not in self.process_outflows_dict:
+                raise ValueError(
+                    "Origin process of internal flow ({}) is not in diagram"
+                    .format(flow))
+
+            destination_process = flow.destination
+            if destination_process not in self.process_outflows_dict:
+                raise ValueError(
+                    "Destination process of internal flow ({})".format(flow) +
+                    " is not in diagram")
+
+            if self.process_outflows_dict[origin_process].__contains__(flow):
+                raise ValueError(
+                    "Internal flow {} has already been input".format(flow))
+
+            (valid, msg) = self.__is_value_valid(flow.value)
+            if not valid:
+                raise ValueError("Internal flow value ({}) was invalid: {}"
+                                 .format(flow.value, msg))
+
+            self.process_outflows_dict[origin_process].add(flow)
+
+    def __add_external_outflows(self, flows: List[Flow]):
+        """Checks legality of external outflow and adds it to the diagram"""
+
+        self.external_outflows = set()
+        for flow in flows:
+            origin_process = flow.origin
+            if origin_process not in self.process_outflows_dict:
+                raise ValueError(
+                    "Origin process of external outflow ({}) is not in diagram"
+                    .format(flow))
+
+            destination_process = flow.destination
+            if destination_process in self.process_outflows_dict:
+                raise ValueError(
+                    "Destination process of external outflow ({}) is in"
+                    .format(flow)) + "diagram"
+
+            if self.external_outflows.__contains__(flow):
+                raise ValueError(
+                    "External outflow {} has already".format(flow) +
+                    " been input")
+
+            (valid, msg) = self.__is_value_valid(flow.value)
+            if not valid:
+                raise ValueError("External outflow value ({}) was invalid: {}"
+                                 .format(flow.value, msg))
+
+            self.external_outflows.add(flow)
+
+    def __add_external_inflows(self, flows: List[Flow]):
+        """ Checks legality of external inflows, adds them to the diagram """
+
+        self.external_inflows = set()
+        for flow in flows:
+            origin_process = flow.origin
+            if origin_process in self.process_outflows_dict:
+                raise ValueError(
+                    "Origin process of external inflow ({}) is in diagram"
+                    .format(flow))
+
+            destination_process = flow.destination
+            if destination_process not in self.process_outflows_dict:
+                raise ValueError(
+                    "Destination process of external outflow ({}) is not in"
+                    .format(flow)) + "diagram"
+
+            if self.external_outflows.__contains__(flow):
+                raise ValueError(
+                    "External inflow {} has already".format(flow) +
+                    " been input")
+
+            (valid, msg) = self.__is_value_valid(flow.value)
+            if not valid:
+                raise ValueError("External inflow value ({}) was invalid: {}"
+                                 .format(flow.value, msg))
+
+            self.external_inflows.add(flow)
+
+    def __is_value_valid(self, value: Value):
+        """ Ensures value is of correct reference material and time """
+        if not isinstance(value, Value):
+            return (False, "Stock/Flow not of type Value")
+
+        if value.material != self.reference_material:
+            return (False, "Value is of wrong material")
+
+        if value.time != self.reference_time:
+            return (False, "Value is of wrong time")
+
+        return (True, "Valid value")
 
 
 if __name__ == '__main__':
