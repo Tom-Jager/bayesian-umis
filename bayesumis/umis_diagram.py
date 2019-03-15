@@ -1,24 +1,128 @@
 """Classes for a graph of processes and flows"""
 import collections.abc
 import sys
-from typing import Type
+from typing import List, Mapping, Optional, Union
 
 
-class Stock():
-    """ A stock of material stored in STAFDB """
+class Uncertainty():
+    """ Superclass for representating uncertainty around a stock or flow value.
+    Representations must have an expected value to use for display """
 
-    def __init__(self):
-        pass
+    def __init__(
+            self,
+            name: str,
+            mean: float):
+        """
+        name: Name of distribution
+        mean: Expected value
+        """
+        self.name = name
+        self.mean = mean
 
 
-class Storage():
-    """ A node which stores a stock """
-    def __init__(self, stock: Stock):
+class UniformUncertainty(Uncertainty):
+    """ Uncertainty represented by a uniform distribution """
+
+    def __init__(
+            self,
+            lower: float,
+            upper: float):
+
+        assert(upper > lower)
+        assert(lower >= 0)
+
+        self.lower = lower
+        self.upper = upper
+
+        mean = (upper + lower) / 2
+        super().__init__("Uniform", mean)
+
+
+class NormalUncertainty(Uncertainty):
+    """ Uncertainty represented by a normal distribution """
+
+    def __init__(
+            self,
+            mean: float,
+            standard_deviation: float):
+
+        assert(mean >= 0)
+
+        self.standard_deviation = standard_deviation
+        super().__init__("Normal", mean)
+
+
+class LogNormalUncertainty(Uncertainty):
+    """ Uncertainty represented by a log-normal distribution """
+
+    def __init__(
+            self,
+            mean: float,
+            standard_deviation: float):
+
+        assert(mean >= 0)
+
+        self.standard_deviation = standard_deviation
+        super().__init__("Log-Normal", mean)
+
+
+class Space():
+    """ Information representing the space/location a value refers to.
+    Currently very prototypical and does not reflect the entirety of the data
+    stored about a location in STAFDB"""
+
+    def __init__(
+                self,
+                uuid: str,
+                name: str):
+
+        self.uuid = uuid
+        self.name = name
+
+
+class Value():
+    """ A value for a stock or a flow stored in STAFDB """
+
+    def __init__(
+            self,
+            quantity: float,
+            unit: str,
+            uncertainty: Uncertainty,
+            space: Space):
+
+        self.quantity = quantity
+        self.unit = unit
+        self.uncertainty = uncertainty
+        self.space = space
+
+
+class TransformationProcess(collections.abc.Hashable):
+    """ A transformation process """
+
+    def __init__(
+            self,
+            uuid: str,
+            name: str,
+            is_separator: bool,
+            parent_id: str,
+            stock: Optional[Value] = None):
+
+        """Constructs a transformation process object"""
+        self.uuid = uuid
+        self.name = name
+        self.is_separator = is_separator
+        self.parent_id = parent_id
         self.stock = stock
 
+    def __eq__(self, process_b):
+        return self.uuid == process_b.uuid
 
-class Process(collections.abc.Hashable):
-    """A process in a UMIS diagram"""
+    def __hash__(self):
+        return self.uuid.__hash__()
+
+
+class DistributionProcess(collections.abc.Hashable):
+    """ A distribution process """
 
     def __init__(
             self,
@@ -26,8 +130,7 @@ class Process(collections.abc.Hashable):
             name: str,
             is_separator: bool,
             parent_id: str):
-
-        """Constructs a process object"""
+        """ Creates a distribution process """
         self.uuid = uuid
         self.name = name
         self.is_separator = is_separator
@@ -40,44 +143,7 @@ class Process(collections.abc.Hashable):
         return self.uuid.__hash__()
 
 
-class TransformationProcess(Process):
-    """ A transformation process """
-
-    def __init__(
-            self,
-            uuid: str,
-            name: str,
-            is_separator: bool,
-            parent_id: str,
-            storage: Storage = None):
-        """ Creates a transformation process """
-        super().__init__(
-            uuid,
-            name,
-            is_separator,
-            parent_id,
-        )
-
-        self.storage = storage
-
-
-class DistributionProcess(Process):
-    """ A distribution process """
-
-    def __init__(
-            self,
-            uuid: str,
-            name: str,
-            is_separator: bool,
-            parent_id: str):
-        """ Creates a distribution process """
-
-        super().__init__(
-            uuid,
-            name,
-            is_separator,
-            parent_id,
-        )
+Process = Union[TransformationProcess, DistributionProcess]
 
 
 class Flow(object):
@@ -87,7 +153,8 @@ class Flow(object):
                 origin: Process,
                 destination: Process,
                 value: float):
-        """Represents the flow of stock from one process to another"""
+        """Represents the flow of stock from one process to another origin
+        must be of a different process type than destination"""
         pass
 
 
@@ -97,10 +164,10 @@ class UmisDiagram(object):
 
     def __init__(
                 self,
-                processes: list,
-                external_inflows: list,
-                internal_flows: list,
-                external_outflows: list):
+                processes: List[Process],
+                external_inflows: List[Flow],
+                internal_flows: List[Flow],
+                external_outflows: List[Flow]):
         """Initializes a diagram from its components and ensures that it is valid
         within UMIS definitions
 
@@ -110,7 +177,7 @@ class UmisDiagram(object):
         external_outflows: List of flows from processes to outside the diagram
         """
 
-        self.process_outflows_dict = {}
+        self.process_outflows_dict: Mapping[Process, List[Flow]] = {}
         """Mapping from processes to their outflows, must be a dictionary"""
 
         try:
@@ -133,6 +200,8 @@ class UmisDiagram(object):
         except Exception as err:
             raise Exception(err)
 
+        self.__check_fully_connected()
+
     def __add_processes(self, processes: list):
         """Adds processes to dict with validation"""
 
@@ -151,8 +220,10 @@ class UmisDiagram(object):
 
         return
 
-    def __add_process(self, process: Type[Process]):
-        """Adds a new process to the diagram"""
+    def __add_process(self, process):
+        """Adds a new process to the diagram, returns 'T' if the process
+        is a transformation process and 'D' if it is distribution"""
+
         if process in self.process_outflows_dict:
             raise ValueError(
                 "Process {} with id {} is already in the diagram"
@@ -164,7 +235,7 @@ class UmisDiagram(object):
             if isinstance(process, DistributionProcess):
                 process_type = 'D'
             else:
-                TypeError(
+                raise TypeError(
                     "process is of type {}:".format(type(process)) +
                     " TransformationProcess or DistributionProcess expected")
 
@@ -172,16 +243,22 @@ class UmisDiagram(object):
 
         return process_type
 
-    def __add_internal_flows(self, flow: Type[Flow]):
-        """Checks legality of internal flow and adds it to the diagram"""
+    def __add_internal_flows(self, flow: Flow):
+        """ Checks legality of internal flow and adds it to the diagram """
+        
         pass
 
-    def __add_external_outflows(self, flow: Type[Flow]):
+    def __add_external_outflows(self, flow: Flow):
         """Checks legality of outflow and adds it to the diagram"""
         pass
 
-    def __add_external_inflows(self, flow: Type[Flow]):
+    def __add_external_inflows(self, flow: Flow):
         """Checks legality of inflow and adds it to the diagram"""
+        pass
+
+    def __check_fully_connected(self):
+        """ Ensures that the resultant diagram is a fully connected set of
+        processes """
         pass
 
 
