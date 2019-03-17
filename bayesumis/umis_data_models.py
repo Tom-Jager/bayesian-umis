@@ -263,7 +263,7 @@ class TransformationProcess(collections.abc.Hashable):
             uuid: str,
             name: str,
             is_separator: bool,
-            parent_id: str,
+            parent_name: str,
             stock: Optional[Value] = None):
 
         """
@@ -280,7 +280,7 @@ class TransformationProcess(collections.abc.Hashable):
         self.uuid = uuid
         self.name = name
         self.is_separator = is_separator
-        self.parent_id = parent_id
+        self.parent_name = parent_name
         self.stock = stock
 
     def __eq__(self, process_b):

@@ -64,7 +64,7 @@ class UmisDiagram():
 
         self.reference_material = reference_material
         self.reference_time = reference_time
-  
+
         try:
             self.__add_processes(processes)
         except Exception as err:
