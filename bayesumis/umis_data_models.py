@@ -188,7 +188,41 @@ class Material():
         self.is_separator = is_separator
 
     def __eq__(self, material_b):
+        assert(isinstance(material_b, Material))
         return self.uuid == material_b.uuid
+
+
+class TransferCoefficient():
+    """
+    Transfer coefficient representing the proportion of the input to
+    the process appropriated by this value
+
+    Attributes
+    ----------
+
+    coefficient (float): Coefficient value
+    uncertainty (Uncertainty): Uncertainty of coefficient value
+    """
+
+    def __init__(
+            self,
+            transfer_coefficient: float,
+            uncertainty: Uncertainty):
+        """
+        Args
+        ----
+
+        coefficient (float): Coefficient value
+        uncertainty (Uncertainty): Uncertainty of coefficient value
+        """
+
+        if transfer_coefficient < 0 or transfer_coefficient > 1:
+            raise ValueError(
+                "Transfer coefficient must be between 0 and 1, was {}"
+                .format(transfer_coefficient))
+
+        self.transfer_coefficient = transfer_coefficient
+        self.uncertainty = uncertainty
 
 
 class Value():
@@ -198,8 +232,10 @@ class Value():
     Attributes
     ----------
     quantity (float): Amount of material
-    unit (str): The unit of the material
     uncertainty (Uncertainty): Uncertainty around the value
+    unit (str): The unit of the material
+    transfer_coefficient (TransferCoefficient): The transfer
+    coefficient for the stock or flow
     material (Material): Material
     space (Space): The location the value is referring to
     time (int): The year the value is referring to
@@ -208,8 +244,9 @@ class Value():
     def __init__(
             self,
             quantity: float,
-            unit: str,
             uncertainty: Uncertainty,
+            unit: str,
+            transfer_coefficient: TransferCoefficient,
             material: Material,
             space: Space,
             time: int):
@@ -218,8 +255,10 @@ class Value():
         ----
 
         quantity (float): Amount of material
-        unit (str): The unit of the material
         uncertainty (Uncertainty): Uncertainty around the value
+        unit (str): The unit of the material
+        transfer_coefficient (TransferCoefficient): The transfer
+        coefficient for the stock or flow
         material (Material): Material
         space (Space): The location the value is referring to
         time (int): The year the value is referring to
@@ -230,8 +269,9 @@ class Value():
                 "quantity was {}".format(quantity))
 
         self.quantity = quantity
-        self.unit = unit
         self.uncertainty = uncertainty
+        self.unit = unit
+        self.transfer_coefficient = transfer_coefficient
         self.material = material
         self.space = space
         self.time = time

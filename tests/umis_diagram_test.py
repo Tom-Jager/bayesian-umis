@@ -8,6 +8,7 @@ from bayesumis.umis_data_models import (
     Flow,
     Material,
     Space,
+    TransferCoefficient,
     TransformationProcess,
     Uncertainty,
     Value)
@@ -88,17 +89,14 @@ class TestUmisDiagramAddProcesses(unittest.TestCase):
         reference_material = Material('1', 'AIR', 'air', None, False)
         wrong_material = Material('2', 'WAT', 'water', None, False)
 
-        space_placeholder = Space('1', 'Bristol')
-        time_placeholder = 2001
-        uncertainty_placeholder = Uncertainty('Uncertainty', 33)
-
         wrong_material_value = Value(
             33,
+            Mock(Uncertainty),
             'g',
-            uncertainty_placeholder,
+            Mock(TransferCoefficient),
             wrong_material,
-            space_placeholder,
-            time_placeholder)
+            Mock(Space),
+            2001)
 
         process2 = TransformationProcess(
             '2',
@@ -112,7 +110,7 @@ class TestUmisDiagramAddProcesses(unittest.TestCase):
             Exception,
             lambda ps: UmisDiagram(
                 reference_material,
-                time_placeholder,
+                2001,
                 ps,
                 [],
                 [],
@@ -192,8 +190,9 @@ class TestAddInternalFlows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             time_placeholder)
@@ -234,8 +233,9 @@ class TestAddInternalFlows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             time_placeholder)
@@ -285,8 +285,9 @@ class TestAddInternalFlows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             2001)
@@ -323,8 +324,9 @@ class TestAddInternalFlows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             fake_material,
             Mock(Space),
             2001)
@@ -360,8 +362,9 @@ class TestAddInternalFlows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             2002)
@@ -401,8 +404,9 @@ class TestAddExternalInflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             time_placeholder)
@@ -450,8 +454,9 @@ class TestAddExternalInflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             2001)
@@ -491,8 +496,9 @@ class TestAddExternalInflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             time_placeholder)
@@ -544,8 +550,9 @@ class TestAddExternalInflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             time_placeholder)
@@ -597,8 +604,9 @@ class TestAddExternalInflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             2001)
@@ -639,8 +647,9 @@ class TestAddExternalInflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             fake_material,
             Mock(Space),
             2001)
@@ -681,11 +690,12 @@ class TestAddExternalInflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
-            2005)
+            2002)
 
         flow = Flow(
             '1',
@@ -736,8 +746,9 @@ class TestAddExternalOutflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             time_placeholder)
@@ -774,8 +785,9 @@ class TestAddExternalOutflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             time_placeholder)
@@ -818,8 +830,9 @@ class TestAddExternalOutflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             time_placeholder)
@@ -859,8 +872,9 @@ class TestAddExternalOutflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             time_placeholder)
@@ -912,8 +926,9 @@ class TestAddExternalOutflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             time_placeholder)
@@ -965,8 +980,9 @@ class TestAddExternalOutflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
             2001)
@@ -1007,8 +1023,9 @@ class TestAddExternalOutflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             fake_material,
             Mock(Space),
             2001)
@@ -1048,11 +1065,12 @@ class TestAddExternalOutflows(unittest.TestCase):
 
         test_value = Value(
             33,
-            'g',
             Mock(Uncertainty),
+            'g',
+            Mock(TransferCoefficient),
             reference_material,
             Mock(Space),
-            2001)
+            2002)
 
         flow = Flow(
             '1',
@@ -1068,7 +1086,7 @@ class TestAddExternalOutflows(unittest.TestCase):
             Exception,
             lambda ext_outfs: UmisDiagram(
                 reference_material,
-                2002,
+                2001,
                 processes,
                 [],
                 [],
