@@ -395,6 +395,9 @@ class Flow(object):
     def __hash__(self):
         return self.uuid.__hash__()
 
+    def __eq__(self, flow_b):
+        return self.uuid == flow_b.uuid
+
 
 if __name__ == '__main__':
     sys.exit(1)

@@ -230,7 +230,7 @@ class UmisDiagram():
                     "Destination process of external outflow ({}) is not in"
                     .format(flow)) + "diagram"
 
-            if self.external_outflows.__contains__(flow):
+            if self.external_inflows.__contains__(flow):
                 raise ValueError(
                     "External inflow {} has already".format(flow) +
                     " been input")
