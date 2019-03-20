@@ -198,6 +198,31 @@ class Material():
         return self.uuid.__hash__()
 
 
+class Timeframe():
+    """
+    The time frame the stocks and flows are in reference to, we are assuming
+    that stocks and flows values are correct at the end of the year
+
+    Attributes
+    ----------
+
+    start_time (int): Start year
+    end_time (int): End year
+    """
+
+    def __init__(self, start_time: int, end_time: int):
+        """
+        Args
+        ----
+        start_time (int): Start year
+        end_time (int): End year
+        """
+
+        assert(start_time <= end_time)
+        self.start_time = start_time
+        self.end_time = end_time
+
+
 class Reference():
     """
     Class representing the attributes a stock or flow is in reference to
@@ -264,11 +289,11 @@ class Value():
 
     Attributes
     ----------
-    quantity (float): Amount of material
+    quantity (float): Amount of material, if None then the amount is unknown
     uncertainty (Uncertainty): Uncertainty around the value
     unit (str): The unit of the material
     transfer_coefficient (TransferCoefficient): The transfer
-    coefficient for the stock or flow
+        coefficient for the stock or flow, if None then the amount is unknown
     """
 
     def __init__(
@@ -276,16 +301,17 @@ class Value():
             quantity: float,
             uncertainty: Uncertainty,
             unit: str,
-            transfer_coefficient: TransferCoefficient):
+            transfer_coefficient: Optional[TransferCoefficient]):
         """
         Args
         ----
 
-        quantity (float): Amount of material
+        quantity (float): Amount of material, if None then amount is unknown
         uncertainty (Uncertainty): Uncertainty around the value
         unit (str): The unit of the material
         transfer_coefficient (TransferCoefficient): The transfer
-        coefficient for the stock or flow
+            coefficient for the stock or flow, if None then the coefficient
+            is unknown
         """
 
         self.quantity = quantity
@@ -310,18 +336,43 @@ class Staf():
     reference (Reference): Attributes the stock or flow is about
     """
 
-    def __init__(self, uuid: str, name: str, reference: Reference):
+    def __init__(
+            self,
+            uuid: str,
+            name: str,
+            reference: Reference,
+            material_values_dict: Dict[Material, Value]):
+
         """
         Args
         ----
         uuid (str): STAFDB id for the stock or flow
         name (str): Name of the stock or flow
         reference (Reference): Attributes the stock or flow is about
+        material_values_dict (dict(Material, Value)): Amount of stock for a
+            given material
         """
 
         self.uuid = uuid
         self.name = name
         self.reference = reference
+        self.__material_values_dict = material_values_dict
+
+    def get_value(self, material: Material):
+        """
+        Get value of material stored at stock or flow
+
+        Args
+        ----
+        material (Material): Material
+
+        Returns
+        -------
+        None if material is not stored at stock or flow
+        Value of material otherwise
+        """
+        assert isinstance(material, Material)
+        return self.__material_values_dict[material]
 
 
 class Stock(Staf):
@@ -333,10 +384,13 @@ class Stock(Staf):
     uuid (str): STAFDB id for the stock or flow
     name (str): Name of the stock or flow
     reference (Reference): Attributes the stock or flow is about
+    material_values_dict (dict(Material, Value)): Amount of stock for a given
+        material
 
     Attributes
     ----------
-    value (Value): Amount of stock
+    stock_type (str): Whether the stock represents net or total stock
+    process (Process): Process the stock is storing material from
     """
 
     def __init__(
@@ -344,21 +398,24 @@ class Stock(Staf):
             uuid: str,
             name: str,
             reference: Reference,
+            material_values_dict: Dict[Material, Value],
             stock_type: str,
-            process: 'Process',
-            material_values_dict: Dict[Material, Value]):
-
+            process: 'Process'):
         """
         Args
         ----
-
-        reference (Reference): Reference attributes for stock
-        value (Value): Amount of stock
+        uuid (str): STAFDB id for the stock or flow
+        name (str): Name of the stock or flow
+        reference (Reference): Attributes the stock or flow is about
+        stock_type (str): Whether the stock represents net or total stock
+        process (Process): Process the stock is storing material from
+        material_values_dict (dict(Material, Value)): Amount of stock for a
+            given material
         """
-        super().__init__(uuid, name, reference)
+
+        super().__init__(uuid, name, reference, material_values_dict)
         self.stock_type = stock_type
         self.process = process
-        self.material_values_dict = material_values_dict
 
 
 class Process(collections.abc.Hashable):
@@ -371,8 +428,7 @@ class Process(collections.abc.Hashable):
     name (str): Process name
     is_separator (bool): True if process has indentical disaggregation
     parent_name (str): Name of parent process
-    is_transformation (bool): Flag signifying type of process
-    stock (Stock): Representation of material stored at this process
+    process_type (str): Type of process, either Transformation or Distribution
     """
 
     def __init__(
@@ -381,27 +437,63 @@ class Process(collections.abc.Hashable):
             name: str,
             is_separator: bool,
             parent_name: str,
-            is_transformation: bool,
-            stock: Optional[Stock] = None):
+            process_type: str):
 
         """
         Args
         ----
 
-        uuid: Id of process in STAFDB
-        name: Process name
-        is_separator: True if process has indentical disaggregation
-        parent_name: Name of parent process
-        is_transformation (bool): Flag signifying type of process
-        stock: Representation of material stored at this process
+        uuid (str): Id of process in STAFDB
+        name (Process): Process name
+        is_separator (bool): True if process has indentical disaggregation
+        parent_name (str): Name of parent process
+        process_type (str): Type of process, either 'Transformation' or
+            'Distribution'
         """
+
+        if process_type != "Transformation" or process_type != "Distribution":
+            raise ValueError("Process type is invalid, expected either " +
+                             "'Transformation' or 'Distribution': got {} "
+                             .format(process_type))
 
         self.uuid = uuid
         self.name = name
         self.is_separator = is_separator
         self.parent_name = parent_name
-        self.is_transformation = is_transformation
-        self.stock = stock
+        self.process_type = process_type
+        self.__stock_dict = {}
+
+    def add_stock(self, stock: Stock):
+        """
+        Add a stock to the process representing a storage process
+
+        Args
+        ----
+
+        stock (Stock): Stock to be added
+        """
+
+        assert isinstance(stock, Stock)
+        self.__stock_dict[stock.stock_type] = stock
+
+    def get_stock(self, stock_type: str):
+        """
+        Get stock of given type from process
+
+        Args
+        ----
+        stock_type (str): Must be either 'Net' or 'Total'
+
+        Returns
+        -------
+        stock (Stock): Stock in storage process if it exists
+        None: Returns None if the stock of that type does not exist
+        """
+        if stock_type != 'Net' or stock_type != 'Total':
+            raise ValueError("Incorrect stock type submitted, expected 'Net'" +
+                             "or 'Total', recieved {}".format(stock_type))
+
+        return self.__stock_dict[stock_type]
 
     def __eq__(self, process_b):
         return self.uuid == process_b.uuid
@@ -410,30 +502,34 @@ class Process(collections.abc.Hashable):
         return self.uuid.__hash__()
 
 
-class Flow(object):
+class Flow(Staf):
     """
     A flow between transformative and distributive processes
 
+    Parent Attributes
+    ----------
+    uuid (str): STAFDB id for the stock or flow
+    name (str): Name of the stock or flow
+    reference (Reference): Attributes the stock or flow is about
+    material_values_dict (dict(Material, Value)): Amount of stock for a
+            given material
+
     Attributes
     ----------
-    uuid (str): ID for the flow in STAFDB
-    name (str): flow name
     is_separator (bool): True if flow has identical disaggregation
     origin (Process): The process the flow starts at
     destination (Process): The process the flow finishes at
-    value (Value): Value of material flowing
-    reference (Reference): Reference attributes for flow
     """
 
     def __init__(
                 self,
                 uuid: str,
                 name: str,
+                reference: Reference,
+                material_values_dict: Dict[Material, Value],
                 is_separator: bool,
                 origin: Process,
-                destination: Process,
-                value: Value,
-                reference: Reference):
+                destination: Process):
         """
         Ensures origin and destination process are of differing types
 
@@ -441,30 +537,27 @@ class Flow(object):
         ----
         uuid: ID for the flow in STAFDB
         name: Name of flow
+        reference (Reference): Reference material, space and time for flow
+        material_values_dict (dict(Material, Value)): Amount of stock for a
+            given material
         is_separator: True if flow has identical disaggregation
         origin: Process flow starts at
         destination: Process flow finishes at
-        value: Value of material flowing
-        reference (Reference): Reference material, space and time for flow
         """
 
-        self.uuid = uuid
-        self.name = name
-        self.is_separator = is_separator
-
-        if origin.is_transformation == destination.is_transformation:
+        if origin.process_type == destination.process_type:
             raise ValueError(
                 "Origin and Destination process must be of differing process" +
-                " types, instead both were {}"
+                " types, instead origin: {} and destination: {}"
                 .format(
-                    "transformation"
-                    if origin.is_transformation else "distribution"))
+                    origin.is_transformation,
+                    destination.is_transformation))
+
+        super().__init__(uuid, name, reference, material_values_dict)
+        self.is_separator = is_separator
 
         self.origin = origin
         self.destination = destination
-
-        self.value = value
-        self.reference = reference
 
     def __str__(self):
         flow_string = "Flow: {}, ID: {}".format(self.name, self.uuid)

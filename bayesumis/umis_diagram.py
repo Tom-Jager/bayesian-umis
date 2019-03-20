@@ -6,6 +6,7 @@ from bayesumis.umis_data_models import (
     Flow,
     Process,
     Reference,
+    Stock,
     Value)
 
 
@@ -33,10 +34,10 @@ class UmisDiagram():
 
     def __init__(
                 self,
-                processes: List[Process],
                 external_inflows: List[Flow],
                 internal_flows: List[Flow],
-                external_outflows: List[Flow]):
+                external_outflows: List[Flow],
+                stocks: List[Stock]):
         """
         Initializes a diagram from its components and ensures that it is valid
         within UMIS definitions
@@ -51,26 +52,14 @@ class UmisDiagram():
         """
 
         self.reference = Reference
+    
+        self.__add_internal_flows(internal_flows)
 
-        try:
-            self.__add_processes(processes)
-        except Exception as err:
-            raise Exception(err)
+        self.__add_external_inflows(external_inflows)
 
-        try:
-            self.__add_internal_flows(internal_flows)
-        except Exception as err:
-            raise Exception(err)
+        self.__add_external_outflows(external_outflows)
 
-        try:
-            self.__add_external_inflows(external_inflows)
-        except Exception as err:
-            raise Exception(err)
-
-        try:
-            self.__add_external_outflows(external_outflows)
-        except Exception as err:
-            raise Exception(err)
+        self.__add_stocks(stocks)
 
     def __add_processes(self, processes: List[Process]):
         """
@@ -162,7 +151,7 @@ class UmisDiagram():
 
             self.process_outflows_dict[origin_process].add(flow)
 
-            self.reference_sets.add_reference(flow.reference)
+            self.__update_diagram_reference(flow.reference)
 
     def __add_external_outflows(self, flows: List[Flow]):
         """Checks legality of external outflow and adds it to the diagram"""
@@ -188,7 +177,7 @@ class UmisDiagram():
 
             self.external_outflows.add(flow)
 
-            self.reference_sets.add_reference(flow.reference)
+            self.__update_diagram_reference(flow.reference)
 
     def __add_external_inflows(self, flows: List[Flow]):
         """ Checks legality of external inflows, adds them to the diagram """
