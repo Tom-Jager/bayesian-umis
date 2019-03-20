@@ -5,7 +5,7 @@ mathematical models
 
 import collections.abc
 import sys
-from typing import Optional
+from typing import Optional, Dict
 
 
 class Uncertainty():
@@ -225,31 +225,6 @@ class Reference():
         self.material = material
 
 
-class ReferenceSets():
-    """
-    Class representing the references represented in the UMIS diagram
-
-    Attributes
-    ----------
-
-    reference_spaces (Set(Space)): Locations stock or flow are in reference to
-    reference_times (Set(int)): Years stock or flow are in reference to
-    reference_materials (Set(Material)): Material stock or flows are in
-        reference to
-    """
-
-    def __init__(self):
-
-        self.reference_spaces = set()
-        self.reference_times = set()
-        self.reference_materials = set()
-
-    def add_reference(self, reference: Reference):
-        self.reference_spaces.add(reference.space)
-        self.reference_materials.add(reference.material)
-        self.reference_times.add(reference.time)
-
-
 class TransferCoefficient():
     """
     Transfer coefficient representing the proportion of the input to
@@ -324,18 +299,55 @@ class Value():
         return value_string
 
 
-class Stock():
+class Staf():
     """
-    Representation of material stored at a process
+    Parent class for stocks and flows
 
     Attributes
     ----------
+    uuid (str): STAFDB id for the stock or flow
+    name (str): Name of the stock or flow
+    reference (Reference): Attributes the stock or flow is about
+    """
 
-    reference (Reference): Reference attributes for stock
+    def __init__(self, uuid: str, name: str, reference: Reference):
+        """
+        Args
+        ----
+        uuid (str): STAFDB id for the stock or flow
+        name (str): Name of the stock or flow
+        reference (Reference): Attributes the stock or flow is about
+        """
+
+        self.uuid = uuid
+        self.name = name
+        self.reference = reference
+
+
+class Stock(Staf):
+    """
+    Representation of material stored at a process
+
+    Parent Attributes
+    ----------
+    uuid (str): STAFDB id for the stock or flow
+    name (str): Name of the stock or flow
+    reference (Reference): Attributes the stock or flow is about
+
+    Attributes
+    ----------
     value (Value): Amount of stock
     """
 
-    def __init__(self, reference: Reference, value: Value):
+    def __init__(
+            self,
+            uuid: str,
+            name: str,
+            reference: Reference,
+            stock_type: str,
+            process: 'Process',
+            material_values_dict: Dict[Material, Value]):
+
         """
         Args
         ----
@@ -343,9 +355,10 @@ class Stock():
         reference (Reference): Reference attributes for stock
         value (Value): Amount of stock
         """
-
-        self.reference = reference
-        self.value = value
+        super().__init__(uuid, name, reference)
+        self.stock_type = stock_type
+        self.process = process
+        self.material_values_dict = material_values_dict
 
 
 class Process(collections.abc.Hashable):

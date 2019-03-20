@@ -16,7 +16,7 @@ class UmisDiagram():
 
     Attributes
     ----------
-    reference_sets (ReferenceSets): Attributes that the stocks and flows are
+    reference (Reference): Attributes that the stocks and flows are
         in reference to
 
     processes (processes): List of all processes for this UMIS diagram
@@ -129,7 +129,7 @@ class UmisDiagram():
                 if not isinstance(process.stock.value, Value):
                     raise TypeError("Stock not of type Value")
 
-                self.reference_sets.add_reference(process.stock.reference)
+                self.__update_diagram_reference(process.stock.reference)
 
         return process_type
 
@@ -214,7 +214,13 @@ class UmisDiagram():
 
             self.external_inflows.add(flow)
 
-            self.reference_sets.add_reference(flow.reference)
+            self.__update_diagram_reference(flow.reference)
+
+    def __update_diagram_reference(self, new_reference: Reference):
+        """
+        Update reference with new reference
+        """
+        self.reference = new_reference
 
 
 if __name__ == '__main__':
