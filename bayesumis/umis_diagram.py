@@ -3,11 +3,9 @@ import sys
 from typing import List, Mapping, Set
 
 from bayesumis.umis_data_models import (
-    DistributionProcess,
     Flow,
-    Material,
     Process,
-    TransformationProcess,
+    Reference,
     Value)
 
 
@@ -18,19 +16,15 @@ class UmisDiagram():
 
     Attributes
     ----------
+    reference_sets (ReferenceSets): Attributes that the stocks and flows are
+        in reference to
 
-    reference_material (Material): Material whose stocks and flows are being
-        structured
-
-    reference_time (int): Time snapshot that the diagram pertains to
     processes (processes): List of all processes for this UMIS diagram
 
-    external_inflows (list(Process)): List of flows into processes from
+    external_inflows (set(Process)): List of flows into processes from
         outside the diagram
 
-    internal_flows (list(Flow)): List of flows between processes in the diagram
-
-    external_outflows (list(Flow)): List of flows from processes to outside
+    external_outflows (set(Flow)): List of flows from processes to outside
         the diagram
 
     process_outflow_dict (dict(Process, list(Flow)): Mapping from processes to
@@ -39,8 +33,6 @@ class UmisDiagram():
 
     def __init__(
                 self,
-                reference_material: Material,
-                reference_time: int,
                 processes: List[Process],
                 external_inflows: List[Flow],
                 internal_flows: List[Flow],
@@ -52,18 +44,13 @@ class UmisDiagram():
         Args
         ----
 
-        reference_material: Material whose stocks and flows are being
-            structured
-
-        reference_time: Time snapshot that the diagram pertains to
         processes: List of all processes for this UMIS diagram
         external_inflows: List of flows into processes from outside the diagram
         internal_flows: List of flows between processes in the diagram
         external_outflows: List of flows from processes to outside the diagram
         """
 
-        self.reference_material = reference_material
-        self.reference_time = reference_time
+        self.reference = Reference
 
         try:
             self.__add_processes(processes)
@@ -113,7 +100,7 @@ class UmisDiagram():
 
     def __add_process(self, process: Process) -> str:
         """
-        Adds a new process to the diagram
+        Adds a new process to the diagram, updates reference sets if needed
 
         Args
         ----
@@ -130,23 +117,19 @@ class UmisDiagram():
                 "Process {} with id {} is already in the diagram"
                 .format(process.name, process.uuid))
 
-        if isinstance(process, TransformationProcess):
+        if process.is_transformation:
             process_type = 'T'
 
-            if process.stock:
-                (valid, msg) = self.__is_value_valid(process.stock)
-                if not valid:
-                    raise ValueError("Process stock ({}) was invalid: {}"
-                                     .format(process.stock, msg))
         else:
-            if isinstance(process, DistributionProcess):
-                process_type = 'D'
-            else:
-                raise TypeError(
-                    "process is of type {}:".format(type(process)) +
-                    " TransformationProcess or DistributionProcess expected")
+            process_type = 'D'
 
         self.process_outflows_dict[process] = set()
+
+        if process.stock:
+                if not isinstance(process.stock.value, Value):
+                    raise TypeError("Stock not of type Value")
+
+                self.reference_sets.add_reference(process.stock.reference)
 
         return process_type
 
@@ -177,12 +160,9 @@ class UmisDiagram():
                 raise ValueError(
                     "Internal flow {} has already been input".format(flow))
 
-            (valid, msg) = self.__is_value_valid(flow.value)
-            if not valid:
-                raise ValueError("Internal flow value ({}) was invalid: {}"
-                                 .format(flow.value, msg))
-
             self.process_outflows_dict[origin_process].add(flow)
+
+            self.reference_sets.add_reference(flow.reference)
 
     def __add_external_outflows(self, flows: List[Flow]):
         """Checks legality of external outflow and adds it to the diagram"""
@@ -206,12 +186,9 @@ class UmisDiagram():
                     "External outflow {} has already".format(flow) +
                     " been input")
 
-            (valid, msg) = self.__is_value_valid(flow.value)
-            if not valid:
-                raise ValueError("External outflow value ({}) was invalid: {}"
-                                 .format(flow.value, msg))
-
             self.external_outflows.add(flow)
+
+            self.reference_sets.add_reference(flow.reference)
 
     def __add_external_inflows(self, flows: List[Flow]):
         """ Checks legality of external inflows, adds them to the diagram """
@@ -235,25 +212,9 @@ class UmisDiagram():
                     "External inflow {} has already".format(flow) +
                     " been input")
 
-            (valid, msg) = self.__is_value_valid(flow.value)
-            if not valid:
-                raise ValueError("External inflow value ({}) was invalid: {}"
-                                 .format(flow.value, msg))
-
             self.external_inflows.add(flow)
 
-    def __is_value_valid(self, value: Value):
-        """ Ensures value is of correct reference material and time """
-        if not isinstance(value, Value):
-            return (False, "Stock/Flow not of type Value")
-
-        if value.material != self.reference_material:
-            return (False, "Value is of wrong material")
-
-        if value.time != self.reference_time:
-            return (False, "Value is of wrong time")
-
-        return (True, "Valid value")
+            self.reference_sets.add_reference(flow.reference)
 
 
 if __name__ == '__main__':

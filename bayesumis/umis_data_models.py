@@ -5,7 +5,7 @@ mathematical models
 
 import collections.abc
 import sys
-from typing import Optional, Union
+from typing import Optional
 
 
 class Uncertainty():
@@ -149,6 +149,9 @@ class Space():
         self.uuid = uuid
         self.name = name
 
+    def __hash__(self):
+        return self.uuid.__hash__()
+
 
 class Material():
     """
@@ -190,6 +193,61 @@ class Material():
     def __eq__(self, material_b):
         assert(isinstance(material_b, Material))
         return self.uuid == material_b.uuid
+
+    def __hash__(self):
+        return self.uuid.__hash__()
+
+
+class Reference():
+    """
+    Class representing the attributes a stock or flow is in reference to
+
+    Attributes
+    ----------
+
+    space (Space): Location stock or flow is in reference to
+    time (int): Year stock or flow is in reference to
+    material (Material): Material stock or flow is in reference to
+    """
+
+    def __init__(self, space: Space, time: int, material: Material):
+        """
+        Args
+        ----------
+
+        space (Space): Location stock or flow is in reference to
+        time (int): Year stock or flow is in reference to
+        material (Material): Material stock or flow is in reference to
+        """
+
+        self.space = space
+        self.time = time
+        self.material = material
+
+
+class ReferenceSets():
+    """
+    Class representing the references represented in the UMIS diagram
+
+    Attributes
+    ----------
+
+    reference_spaces (Set(Space)): Locations stock or flow are in reference to
+    reference_times (Set(int)): Years stock or flow are in reference to
+    reference_materials (Set(Material)): Material stock or flows are in
+        reference to
+    """
+
+    def __init__(self):
+
+        self.reference_spaces = set()
+        self.reference_times = set()
+        self.reference_materials = set()
+
+    def add_reference(self, reference: Reference):
+        self.reference_spaces.add(reference.space)
+        self.reference_materials.add(reference.material)
+        self.reference_times.add(reference.time)
 
 
 class TransferCoefficient():
@@ -236,9 +294,6 @@ class Value():
     unit (str): The unit of the material
     transfer_coefficient (TransferCoefficient): The transfer
     coefficient for the stock or flow
-    material (Material): Material
-    space (Space): The location the value is referring to
-    time (int): The year the value is referring to
     """
 
     def __init__(
@@ -246,10 +301,7 @@ class Value():
             quantity: float,
             uncertainty: Uncertainty,
             unit: str,
-            transfer_coefficient: TransferCoefficient,
-            material: Material,
-            space: Space,
-            time: int):
+            transfer_coefficient: TransferCoefficient):
         """
         Args
         ----
@@ -259,35 +311,46 @@ class Value():
         unit (str): The unit of the material
         transfer_coefficient (TransferCoefficient): The transfer
         coefficient for the stock or flow
-        material (Material): Material
-        space (Space): The location the value is referring to
-        time (int): The year the value is referring to
         """
-        if quantity < 0:
-            raise ValueError(
-                "Can only have stocks or flows greater than or equal to 0," +
-                "quantity was {}".format(quantity))
 
         self.quantity = quantity
         self.uncertainty = uncertainty
         self.unit = unit
         self.transfer_coefficient = transfer_coefficient
-        self.material = material
-        self.space = space
-        self.time = time
 
     def __str__(self):
-        value_string = "Material: {}, Space: {}, Time: {}".format(
-            self.material.name,
-            self.space.name,
-            self.time)
+        value_string = "{} {}".format(self.quantity, self.unit)
 
         return value_string
 
 
-class TransformationProcess(collections.abc.Hashable):
+class Stock():
     """
-    A process representation transformation of material
+    Representation of material stored at a process
+
+    Attributes
+    ----------
+
+    reference (Reference): Reference attributes for stock
+    value (Value): Amount of stock
+    """
+
+    def __init__(self, reference: Reference, value: Value):
+        """
+        Args
+        ----
+
+        reference (Reference): Reference attributes for stock
+        value (Value): Amount of stock
+        """
+
+        self.reference = reference
+        self.value = value
+
+
+class Process(collections.abc.Hashable):
+    """
+    A process representing either tranformation or distribution of material
 
     Attributes
     -----------
@@ -295,7 +358,8 @@ class TransformationProcess(collections.abc.Hashable):
     name (str): Process name
     is_separator (bool): True if process has indentical disaggregation
     parent_name (str): Name of parent process
-    stock (str): Representation of material stored at this process
+    is_transformation (bool): Flag signifying type of process
+    stock (Stock): Representation of material stored at this process
     """
 
     def __init__(
@@ -304,7 +368,8 @@ class TransformationProcess(collections.abc.Hashable):
             name: str,
             is_separator: bool,
             parent_name: str,
-            stock: Optional[Value] = None):
+            is_transformation: bool,
+            stock: Optional[Stock] = None):
 
         """
         Args
@@ -314,6 +379,7 @@ class TransformationProcess(collections.abc.Hashable):
         name: Process name
         is_separator: True if process has indentical disaggregation
         parent_name: Name of parent process
+        is_transformation (bool): Flag signifying type of process
         stock: Representation of material stored at this process
         """
 
@@ -321,6 +387,7 @@ class TransformationProcess(collections.abc.Hashable):
         self.name = name
         self.is_separator = is_separator
         self.parent_name = parent_name
+        self.is_transformation = is_transformation
         self.stock = stock
 
     def __eq__(self, process_b):
@@ -328,50 +395,6 @@ class TransformationProcess(collections.abc.Hashable):
 
     def __hash__(self):
         return self.uuid.__hash__()
-
-
-class DistributionProcess(collections.abc.Hashable):
-    """
-    A distribution process representation distribution of stock to other
-    processes
-
-    Attributes
-    ----------
-    uuid (str): Id of process in STAFDB
-    is_separator (bool): True if process has indentical disaggregation
-    name (str): Process name
-    parent_name (str): Name of parent process
-    """
-
-    def __init__(
-            self,
-            uuid: str,
-            is_separator: bool,
-            name: str,
-            parent_name: str):
-        """
-        Args
-        ----
-
-        uuid: Id of process in STAFDB
-        is_separator: True if process has indentical disaggregation
-        name: Process name
-        parent_name: Name of parent process
-        """
-
-        self.uuid = uuid
-        self.name = name
-        self.is_separator = is_separator
-        self.parent_name = parent_name
-
-    def __eq__(self, process_b):
-        return self.uuid == process_b.uuid
-
-    def __hash__(self):
-        return self.uuid.__hash__()
-
-
-Process = Union[TransformationProcess, DistributionProcess]
 
 
 class Flow(object):
@@ -386,6 +409,7 @@ class Flow(object):
     origin (Process): The process the flow starts at
     destination (Process): The process the flow finishes at
     value (Value): Value of material flowing
+    reference (Reference): Reference attributes for flow
     """
 
     def __init__(
@@ -396,7 +420,7 @@ class Flow(object):
                 origin: Process,
                 destination: Process,
                 value: Value,
-                ):
+                reference: Reference):
         """
         Ensures origin and destination process are of differing types
 
@@ -408,25 +432,26 @@ class Flow(object):
         origin: Process flow starts at
         destination: Process flow finishes at
         value: Value of material flowing
+        reference (Reference): Reference material, space and time for flow
         """
+
         self.uuid = uuid
         self.name = name
         self.is_separator = is_separator
 
-        if not ((isinstance(origin, TransformationProcess) and
-                isinstance(destination, DistributionProcess))
-                or
-                (isinstance(origin, DistributionProcess) and
-                    isinstance(destination, TransformationProcess))):
-            raise TypeError(
+        if origin.is_transformation == destination.is_transformation:
+            raise ValueError(
                 "Origin and Destination process must be of differing process" +
-                " types, instead were {} and {}"
-                .format(type(origin), type(destination)))
+                " types, instead both were {}"
+                .format(
+                    "transformation"
+                    if origin.is_transformation else "distribution"))
 
         self.origin = origin
         self.destination = destination
 
         self.value = value
+        self.reference = reference
 
     def __str__(self):
         flow_string = "Flow: {}, ID: {}".format(self.name, self.uuid)
