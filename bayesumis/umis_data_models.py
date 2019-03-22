@@ -390,7 +390,7 @@ class Stock(Staf):
     Attributes
     ----------
     stock_type (str): Whether the stock represents net or total stock
-    process (Process): Process the stock is storing material from
+    process_id (str): Process the stock is storing material from
     """
 
     def __init__(
@@ -400,25 +400,25 @@ class Stock(Staf):
             reference: Reference,
             material_values_dict: Dict[Material, Value],
             stock_type: str,
-            process: 'Process'):
+            process_id: str):
         """
         Args
         ----
         uuid (str): STAFDB id for the stock or flow
-        name (str): Name of the stock or flow
         reference (Reference): Attributes the stock or flow is about
+        name (str): Name of the stock or flow
         stock_type (str): Whether the stock represents net or total stock
-        process (Process): Process the stock is storing material from
+        process_id (Process): Process the stock is storing material from
         material_values_dict (dict(Material, Value)): Amount of stock for a
             given material
         """
 
         super().__init__(uuid, name, reference, material_values_dict)
         self.stock_type = stock_type
-        self.process = process
+        self.process_id = process_id
 
 
-class Process(collections.abc.Hashable):
+class UmisProcess(collections.abc.Hashable):
     """
     A process representing either tranformation or distribution of material
 
@@ -451,7 +451,7 @@ class Process(collections.abc.Hashable):
             'Distribution'
         """
 
-        if process_type != "Transformation" or process_type != "Distribution":
+        if process_type != "Transformation" and process_type != "Distribution":
             raise ValueError("Process type is invalid, expected either " +
                              "'Transformation' or 'Distribution': got {} "
                              .format(process_type))
@@ -489,7 +489,7 @@ class Process(collections.abc.Hashable):
         stock (Stock): Stock in storage process if it exists
         None: Returns None if the stock of that type does not exist
         """
-        if stock_type != 'Net' or stock_type != 'Total':
+        if stock_type != 'Net' and stock_type != 'Total':
             raise ValueError("Incorrect stock type submitted, expected 'Net'" +
                              "or 'Total', recieved {}".format(stock_type))
 
@@ -517,8 +517,8 @@ class Flow(Staf):
     Attributes
     ----------
     is_separator (bool): True if flow has identical disaggregation
-    origin (Process): The process the flow starts at
-    destination (Process): The process the flow finishes at
+    origin (UmisProcess): The process the flow starts at
+    destination (UmisProcess): The process the flow finishes at
     """
 
     def __init__(
@@ -528,8 +528,8 @@ class Flow(Staf):
                 reference: Reference,
                 material_values_dict: Dict[Material, Value],
                 is_separator: bool,
-                origin: Process,
-                destination: Process):
+                origin: UmisProcess,
+                destination: UmisProcess):
         """
         Ensures origin and destination process are of differing types
 
