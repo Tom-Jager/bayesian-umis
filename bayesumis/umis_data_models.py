@@ -159,7 +159,7 @@ class Material():
 
     Attributes
     ----------
-    uuid (str): Id for the material in STAFDB
+    uuid (str): Material ID in STAFDB
     code (str): Material code
     name (str): Material name
     parent_name (str): Name of the aggregation of this material
@@ -190,7 +190,7 @@ class Material():
         self.parent_name = parent_name
         self.is_separator = is_separator
 
-    def __eq__(self, material_b):
+    def __eq__(self, material_b: 'Material'):
         assert(isinstance(material_b, Material))
         return self.uuid == material_b.uuid
 
@@ -221,6 +221,12 @@ class Timeframe():
         assert(start_time <= end_time)
         self.start_time = start_time
         self.end_time = end_time
+
+    def __eq__(self, timeframe_b: 'Timeframe'):
+        assert isinstance(timeframe_b, Timeframe)
+
+        return (self.start_time == timeframe_b.start_time and
+                self.end_time == timeframe_b.end_time)
 
 
 class Reference():
@@ -372,7 +378,7 @@ class Staf():
         Value of material otherwise
         """
         assert isinstance(material, Material)
-        return self.__material_values_dict[material]
+        return self.__material_values_dict.get(material)
 
 
 class Stock(Staf):
@@ -424,7 +430,8 @@ class UmisProcess(collections.abc.Hashable):
 
     Attributes
     -----------
-    uuid (str): Id of process in STAFDB
+    uuid (str): Unique ID for process in STAFDB
+    code (str): Unique readable code for process in STAFDB
     name (str): Process name
     is_separator (bool): True if process has indentical disaggregation
     parent_name (str): Name of parent process
@@ -434,6 +441,7 @@ class UmisProcess(collections.abc.Hashable):
     def __init__(
             self,
             uuid: str,
+            code: str,
             name: str,
             is_separator: bool,
             parent_name: str,
@@ -443,7 +451,8 @@ class UmisProcess(collections.abc.Hashable):
         Args
         ----
 
-        uuid (str): Id of process in STAFDB
+        uuid (str): Unique ID of process in STAFDB
+        code (str): Readable Code of process in STAFDB
         name (Process): Process name
         is_separator (bool): True if process has indentical disaggregation
         parent_name (str): Name of parent process
@@ -457,6 +466,7 @@ class UmisProcess(collections.abc.Hashable):
                              .format(process_type))
 
         self.uuid = uuid
+        self.code = code
         self.name = name
         self.is_separator = is_separator
         self.parent_name = parent_name
@@ -493,7 +503,7 @@ class UmisProcess(collections.abc.Hashable):
             raise ValueError("Incorrect stock type submitted, expected 'Net'" +
                              "or 'Total', recieved {}".format(stock_type))
 
-        return self.__stock_dict[stock_type]
+        return self.__stock_dict.get(stock_type)
 
     def __eq__(self, process_b):
         return self.uuid == process_b.uuid

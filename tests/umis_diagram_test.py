@@ -21,9 +21,9 @@ class TestUmisDiagram(unittest.TestCase):
 
     def test_add_internal_flow(self):
         process1 = UmisProcess(
-            '1', 'Process 1', False, 'parent', 'Transformation')
+            '1', 'Proc1', 'Process 1', False, 'parent', 'Transformation')
         process2 = UmisProcess(
-            '2', 'Process 1', False, 'parent', 'Distribution')
+            '2', 'PROC2', 'Process 2', False, 'parent', 'Distribution')
 
         material = Material('1', 'WAT', 'Water', 'parent', False)
         space = Space('1', 'Bristol')
@@ -48,16 +48,77 @@ class TestUmisDiagram(unittest.TestCase):
         self.assertEqual(
             expected_process_outflows_dict, umis_diagram.process_outflows_dict)
 
+    def test_add_two_internal_flows(self):
+        process1 = UmisProcess(
+            '1', 'Proc1', 'Process 1', False, 'parent', 'Transformation')
+        process2 = UmisProcess(
+            '2', 'PROC2', 'Process 2', False, 'parent', 'Distribution')
+
+        material = Material('1', 'WAT', 'Water', 'parent', False)
+        space = Space('1', 'Bristol')
+        timeframe = Timeframe(2001, 2001)
+
+        value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
+
+        reference = Reference(space, timeframe, material)
+        flow1 = Flow('1', 'Flow1', reference, value, False, process1, process2)
+        flow2 = Flow('2', 'Flow2', reference, value, False, process1, process2)
+
+        umis_diagram = UmisDiagram(
+            external_inflows={},
+            internal_flows={flow1, flow2},
+            external_outflows={},
+            stocks={}
+        )
+
+        expected_process_store = {'1': process1, '2': process2}
+        expected_process_outflows_dict = {'1': {flow1, flow2}, '2': set()}
+
+        self.assertEqual(expected_process_store, umis_diagram.process_store)
+        self.assertEqual(
+            expected_process_outflows_dict, umis_diagram.process_outflows_dict)
+
+    def test_add_two_internal_flows_different_processes(self):
+        process1 = UmisProcess(
+            '1', 'Proc1', 'Process 1', False, 'parent', 'Transformation')
+        process2 = UmisProcess(
+            '2', 'PROC2', 'Process 2', False, 'parent', 'Distribution')
+
+        material = Material('1', 'WAT', 'Water', 'parent', False)
+        space = Space('1', 'Bristol')
+        timeframe = Timeframe(2001, 2001)
+
+        value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
+
+        reference = Reference(space, timeframe, material)
+        flow1 = Flow('1', 'Flow1', reference, value, False, process1, process2)
+        flow2 = Flow('2', 'Flow2', reference, value, False, process2, process1)
+
+        umis_diagram = UmisDiagram(
+            external_inflows={},
+            internal_flows={flow1, flow2},
+            external_outflows={},
+            stocks={}
+        )
+
+        expected_process_store = {'1': process1, '2': process2}
+        expected_process_outflows_dict = {'1': {flow1}, '2': {flow2}}
+
+        self.assertEqual(expected_process_store, umis_diagram.process_store)
+        self.assertEqual(
+            expected_process_outflows_dict, umis_diagram.process_outflows_dict)
+
     def test_add_external_inflow(self):
         external_process1 = UmisProcess(
             '1',
+            'EXPROC1',
             'External Process 1',
             False,
             'parent',
             'Transformation')
 
         process2 = UmisProcess(
-            '2', 'Process 1', False, 'parent', 'Distribution')
+            '2', 'PROC2', 'Process 2', False, 'parent', 'Distribution')
 
         material = Material('1', 'WAT', 'Water', 'parent', False)
         space = Space('1', 'Bristol')
@@ -98,6 +159,7 @@ class TestUmisDiagram(unittest.TestCase):
     def test_add_external_outflow(self):
         process1 = UmisProcess(
             '1',
+            'PROC1',
             'Process 1',
             False,
             'parent',
@@ -105,6 +167,7 @@ class TestUmisDiagram(unittest.TestCase):
 
         external_process2 = UmisProcess(
             '2',
+            'EXPROC2',
             'External Process 2',
             False,
             'parent',
@@ -148,9 +211,9 @@ class TestUmisDiagram(unittest.TestCase):
 
     def test_add_stock_to_process(self):
         process1 = UmisProcess(
-            '1', 'Process 1', False, 'parent', 'Transformation')
+            '1', 'Proc1', 'Process 1', False, 'parent', 'Transformation')
         process2 = UmisProcess(
-            '2', 'Process 1', False, 'parent', 'Distribution')
+            '2', 'PROC2', 'Process 2', False, 'parent', 'Distribution')
 
         material = Material('1', 'WAT', 'Water', 'parent', False)
         material2 = Material('2', 'WAT', 'Water', 'parent', False)
