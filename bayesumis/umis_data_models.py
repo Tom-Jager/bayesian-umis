@@ -94,7 +94,7 @@ class NormalUncertainty(Uncertainty):
         super().__init__("Normal", mean)
 
 
-class LogNormalUncertainty(Uncertainty):
+class LognormalUncertainty(Uncertainty):
     """
     Uncertainty represented by a log-normal distribution
 
@@ -130,27 +130,27 @@ class Space():
 
     Attributes
     ----------
-    uuid (str): Id for the reference space in STAFDB
+    stafdb_id (str): Id for the reference space in STAFDB
     name (str): Name of the reference space
     """
 
     def __init__(
             self,
-            uuid: str,
+            stafdb_id: str,
             name: str):
         """
         Args
         ----
 
-        uuid: Id for the reference space in STAFDB
+        stafdb_id: Id for the reference space in STAFDB
         name: Name of the reference space
         """
 
-        self.uuid = uuid
+        self.stafdb_id = stafdb_id
         self.name = name
 
     def __hash__(self):
-        return self.uuid.__hash__()
+        return self.stafdb_id.__hash__()
 
 
 class Material():
@@ -159,7 +159,7 @@ class Material():
 
     Attributes
     ----------
-    uuid (str): Material ID in STAFDB
+    stafdb_id (str): Material ID in STAFDB
     code (str): Material code
     name (str): Material name
     parent_name (str): Name of the aggregation of this material
@@ -168,7 +168,7 @@ class Material():
 
     def __init__(
             self,
-            uuid: str,
+            stafdb_id: str,
             code: str,
             name: str,
             parent_name: Optional[str],
@@ -177,14 +177,14 @@ class Material():
         Args
         ----
 
-        uuid: Id for the material in STAFDB
+        stafdb_id: Id for the material in STAFDB
         code: Material code
         name: Material name
         parent_name: Name of the aggregation of this material
         is_separator: flag to representing identical disaggregations
         """
 
-        self.uuid = uuid
+        self.stafdb_id = stafdb_id
         self.code = code
         self.name = name
         self.parent_name = parent_name
@@ -192,10 +192,10 @@ class Material():
 
     def __eq__(self, material_b: 'Material'):
         assert(isinstance(material_b, Material))
-        return self.uuid == material_b.uuid
+        return self.stafdb_id == material_b.stafdb_id
 
     def __hash__(self):
-        return self.uuid.__hash__()
+        return self.stafdb_id.__hash__()
 
 
 class Timeframe():
@@ -205,20 +205,22 @@ class Timeframe():
 
     Attributes
     ----------
-
+    stafdb_id: Id of timeframe in Stafdb
     start_time (int): Start year
     end_time (int): End year
     """
 
-    def __init__(self, start_time: int, end_time: int):
+    def __init__(self, stafdb_id: str, start_time: int, end_time: int):
         """
         Args
         ----
+        stafdb_id: Id of timeframe in Stafdb
         start_time (int): Start year
         end_time (int): End year
         """
 
         assert(start_time <= end_time)
+        self.stafdb_id = stafdb_id
         self.start_time = start_time
         self.end_time = end_time
 
@@ -236,57 +238,34 @@ class Reference():
     Attributes
     ----------
 
-    space (Space): Location stock or flow is in reference to
-    time (int): Year stock or flow is in reference to
+    origin_space (Space): Location start of stock or flow is in reference to
+    destination_space (Space): Location end of stock or flow is in reference to
+    time (Timeframe): Year stock or flow is in reference to
     material (Material): Material stock or flow is in reference to
-    """
-
-    def __init__(self, space: Space, time: int, material: Material):
-        """
-        Args
-        ----------
-
-        space (Space): Location stock or flow is in reference to
-        time (int): Year stock or flow is in reference to
-        material (Material): Material stock or flow is in reference to
-        """
-
-        self.space = space
-        self.time = time
-        self.material = material
-
-
-class TransferCoefficient():
-    """
-    Transfer coefficient representing the proportion of the input to
-    the process appropriated by this value
-
-    Attributes
-    ----------
-
-    coefficient (float): Coefficient value
-    uncertainty (Uncertainty): Uncertainty of coefficient value
     """
 
     def __init__(
             self,
-            transfer_coefficient: float,
-            uncertainty: Uncertainty):
+            origin_space: Space,
+            destination_space: Space,
+            time: Timeframe,
+            material: Material):
         """
         Args
-        ----
+        ----------
 
-        coefficient (float): Coefficient value
-        uncertainty (Uncertainty): Uncertainty of coefficient value
+        origin_space (Space): Location start of stock or flow is in reference
+            to
+        destination_space (Space): Location end of stock or flow is in
+            reference to
+        time (Timeframe): Year stock or flow is in reference to
+        material (Material): Material stock or flow is in reference to
         """
 
-        if transfer_coefficient < 0 or transfer_coefficient > 1:
-            raise ValueError(
-                "Transfer coefficient must be between 0 and 1, was {}"
-                .format(transfer_coefficient))
-
-        self.transfer_coefficient = transfer_coefficient
-        self.uncertainty = uncertainty
+        self.origin_space = origin_space
+        self.destination_space = destination_space
+        self.time = time
+        self.material = material
 
 
 class Value():
@@ -295,6 +274,7 @@ class Value():
 
     Attributes
     ----------
+    stafdb_id: Id of timeframe in Stafdb
     quantity (float): Amount of material, if None then the amount is unknown
     uncertainty (Uncertainty): Uncertainty around the value
     unit (str): The unit of the material
@@ -304,6 +284,7 @@ class Value():
 
     def __init__(
             self,
+            stafdb_id: str,
             quantity: float,
             uncertainty: Uncertainty,
             unit: str,
@@ -311,7 +292,7 @@ class Value():
         """
         Args
         ----
-
+        stafdb_id: Id of timeframe in Stafdb
         quantity (float): Amount of material, if None then amount is unknown
         uncertainty (Uncertainty): Uncertainty around the value
         unit (str): The unit of the material
@@ -319,7 +300,7 @@ class Value():
             coefficient for the stock or flow, if None then the coefficient
             is unknown
         """
-
+        self.stafdb_id = stafdb_id
         self.quantity = quantity
         self.uncertainty = uncertainty
         self.unit = unit
@@ -337,14 +318,14 @@ class Staf():
 
     Attributes
     ----------
-    uuid (str): STAFDB id for the stock or flow
+    stafdb_id (str): STAFDB id for the stock or flow
     name (str): Name of the stock or flow
     reference (Reference): Attributes the stock or flow is about
     """
 
     def __init__(
             self,
-            uuid: str,
+            stafdb_id: str,
             name: str,
             reference: Reference,
             material_values_dict: Dict[Material, Value]):
@@ -352,14 +333,14 @@ class Staf():
         """
         Args
         ----
-        uuid (str): STAFDB id for the stock or flow
+        stafdb_id (str): STAFDB id for the stock or flow
         name (str): Name of the stock or flow
         reference (Reference): Attributes the stock or flow is about
         material_values_dict (dict(Material, Value)): Amount of stock for a
             given material
         """
 
-        self.uuid = uuid
+        self.stafdb_id = stafdb_id
         self.name = name
         self.reference = reference
         self.__material_values_dict = material_values_dict
@@ -387,7 +368,7 @@ class Stock(Staf):
 
     Parent Attributes
     ----------
-    uuid (str): STAFDB id for the stock or flow
+    stafdb_id (str): STAFDB id for the stock or flow
     name (str): Name of the stock or flow
     reference (Reference): Attributes the stock or flow is about
     material_values_dict (dict(Material, Value)): Amount of stock for a given
@@ -401,7 +382,7 @@ class Stock(Staf):
 
     def __init__(
             self,
-            uuid: str,
+            stafdb_id: str,
             name: str,
             reference: Reference,
             material_values_dict: Dict[Material, Value],
@@ -410,7 +391,7 @@ class Stock(Staf):
         """
         Args
         ----
-        uuid (str): STAFDB id for the stock or flow
+        stafdb_id (str): STAFDB id for the stock or flow
         reference (Reference): Attributes the stock or flow is about
         name (str): Name of the stock or flow
         stock_type (str): Whether the stock represents net or total stock
@@ -419,7 +400,7 @@ class Stock(Staf):
             given material
         """
 
-        super().__init__(uuid, name, reference, material_values_dict)
+        super().__init__(stafdb_id, name, reference, material_values_dict)
         self.stock_type = stock_type
         self.process_id = process_id
 
@@ -430,9 +411,12 @@ class UmisProcess(collections.abc.Hashable):
 
     Attributes
     -----------
-    uuid (str): Unique ID for process in STAFDB
-    code (str): Unique readable code for process in STAFDB
+    diagram_id (str): Unique ID for a process at a space in a Umis diagram
+        constructed from process id and space id
+    stafdb_id (str): Unique ID for process in STAFDB
+    code (str): Unique code for process in STAFDB
     name (str): Process name
+    space (Space): Reference space for process
     is_separator (bool): True if process has indentical disaggregation
     parent_name (str): Name of parent process
     process_type (str): Type of process, either Transformation or Distribution
@@ -440,9 +424,10 @@ class UmisProcess(collections.abc.Hashable):
 
     def __init__(
             self,
-            uuid: str,
+            stafdb_id: str,
             code: str,
             name: str,
+            reference_space: Space,
             is_separator: bool,
             parent_name: str,
             process_type: str):
@@ -450,10 +435,11 @@ class UmisProcess(collections.abc.Hashable):
         """
         Args
         ----
-
-        uuid (str): Unique ID of process in STAFDB
+        diagram_id (str): Unique ID for a process at a space in a Umis diagram
+        stafdb_id (str): Unique ID of process in STAFDB
         code (str): Readable Code of process in STAFDB
         name (Process): Process name
+        reference_space (Space): Reference space for process
         is_separator (bool): True if process has indentical disaggregation
         parent_name (str): Name of parent process
         process_type (str): Type of process, either 'Transformation' or
@@ -464,10 +450,11 @@ class UmisProcess(collections.abc.Hashable):
             raise ValueError("Process type is invalid, expected either " +
                              "'Transformation' or 'Distribution': got {} "
                              .format(process_type))
-
-        self.uuid = uuid
+        self.diagram_id = "{}_{}".format(stafdb_id, reference_space.stafdb_id)
+        self.stafdb_id = stafdb_id
         self.code = code
         self.name = name
+        self.reference_space = reference_space
         self.is_separator = is_separator
         self.parent_name = parent_name
         self.process_type = process_type
@@ -506,10 +493,10 @@ class UmisProcess(collections.abc.Hashable):
         return self.__stock_dict.get(stock_type)
 
     def __eq__(self, process_b):
-        return self.uuid == process_b.uuid
+        return self.diagram_id == process_b.diagram_id
 
     def __hash__(self):
-        return self.uuid.__hash__()
+        return self.stafdb_id.__hash__()
 
 
 class Flow(Staf):
@@ -518,7 +505,7 @@ class Flow(Staf):
 
     Parent Attributes
     ----------
-    uuid (str): STAFDB id for the stock or flow
+    stafdb_id (str): STAFDB id for the stock or flow
     name (str): Name of the stock or flow
     reference (Reference): Attributes the stock or flow is about
     material_values_dict (dict(Material, Value)): Amount of stock for a
@@ -533,7 +520,7 @@ class Flow(Staf):
 
     def __init__(
                 self,
-                uuid: str,
+                stafdb_id: str,
                 name: str,
                 reference: Reference,
                 material_values_dict: Dict[Material, Value],
@@ -545,7 +532,7 @@ class Flow(Staf):
 
         Args
         ----
-        uuid: ID for the flow in STAFDB
+        stafdb_id: ID for the flow in STAFDB
         name: Name of flow
         reference (Reference): Reference material, space and time for flow
         material_values_dict (dict(Material, Value)): Amount of stock for a
@@ -563,21 +550,21 @@ class Flow(Staf):
                     origin.is_transformation,
                     destination.is_transformation))
 
-        super().__init__(uuid, name, reference, material_values_dict)
+        super().__init__(stafdb_id, name, reference, material_values_dict)
         self.is_separator = is_separator
 
         self.origin = origin
         self.destination = destination
 
     def __str__(self):
-        flow_string = "Flow: {}, ID: {}".format(self.name, self.uuid)
+        flow_string = "Flow: {}, ID: {}".format(self.name, self.stafdb_id)
         return flow_string
 
     def __hash__(self):
-        return self.uuid.__hash__()
+        return self.stafdb_id.__hash__()
 
     def __eq__(self, flow_b):
-        return self.uuid == flow_b.uuid
+        return self.stafdb_id == flow_b.stafdb_id
 
 
 if __name__ == '__main__':

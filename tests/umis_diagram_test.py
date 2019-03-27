@@ -31,7 +31,7 @@ class TestUmisDiagram(unittest.TestCase):
 
         value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
 
-        reference = Reference(space, timeframe, material)
+        reference = Reference(space, space, timeframe, material)
         flow = Flow('1', 'Flow 1', reference, value, False, process1, process2)
 
         umis_diagram = UmisDiagram(
@@ -60,7 +60,7 @@ class TestUmisDiagram(unittest.TestCase):
 
         value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
 
-        reference = Reference(space, timeframe, material)
+        reference = Reference(space, space, timeframe, material)
         flow1 = Flow('1', 'Flow1', reference, value, False, process1, process2)
         flow2 = Flow('2', 'Flow2', reference, value, False, process1, process2)
 
@@ -90,7 +90,7 @@ class TestUmisDiagram(unittest.TestCase):
 
         value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
 
-        reference = Reference(space, timeframe, material)
+        reference = Reference(space, space, timeframe, material)
         flow1 = Flow('1', 'Flow1', reference, value, False, process1, process2)
         flow2 = Flow('2', 'Flow2', reference, value, False, process2, process1)
 
@@ -126,7 +126,7 @@ class TestUmisDiagram(unittest.TestCase):
 
         value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
 
-        reference = Reference(space, timeframe, material)
+        reference = Reference(space, space, timeframe, material)
 
         flow = Flow(
             '1',
@@ -179,7 +179,7 @@ class TestUmisDiagram(unittest.TestCase):
 
         value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
 
-        reference = Reference(space, timeframe, material)
+        reference = Reference(space, space, timeframe, material)
 
         flow = Flow(
             '1',
@@ -224,10 +224,10 @@ class TestUmisDiagram(unittest.TestCase):
         value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
         value2 = Value(50, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
 
-        reference = Reference(space, timeframe, material)
+        reference = Reference(space, space, timeframe, material)
         flow = Flow('1', 'Flow 1', reference, value, False, process1, process2)
 
-        reference2 = Reference(space, timeframe, material2)
+        reference2 = Reference(space, space, timeframe, material2)
 
         stock = Stock(
             '1', 'Stock 1', reference2, {material2: value2}, 'Net', '1')

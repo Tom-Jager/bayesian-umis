@@ -13,9 +13,6 @@ from typing import List, Tuple
 
 import numpy as np
 
-from bayesumis.umis_data_models import Flow
-
-
 def make_distribution_tcs(
         shares: List[float],
         with_stddev: Tuple[int, float] = None) -> List[float]:
@@ -47,14 +44,26 @@ def make_distribution_tcs(
         return shares
 
 
-def get_process_name(process_code: str, space_name: str) -> Tuple[str, str]:
-    """ Get unique process name """
+def get_process_name(
+        pos_to_diagram: str,
+        process_name: str,
+        space_name: str) -> str:
+    """ 
+    Get process name
+
+    Args
+    ----
+    pos_to_diagram (str): 'EXT' if process is external, 'INT' if internal
+    process_name (str): Name of process
+    space_name (str): Name of process reference space
+    """
 
     # Umis mentions the importance of having a unique name for each process
     # We are assuming this exists for readability
 
     # P_{process_name}_S_{flow_space}
 
-    process_name = "P_{}_S_{}".format(process_code, space_name)
+    process_name = "P_{}_S_{}_{}".format(
+        process_name, space_name, pos_to_diagram)
 
     return process_name
