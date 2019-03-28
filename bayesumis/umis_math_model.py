@@ -21,13 +21,11 @@ from bayesumis.umis_data_models import (
     LognormalUncertainty,
     NormalUncertainty,
     Material,
-    Stock,
     Timeframe,
     UmisProcess,
     Uncertainty,
-    UniformUncertainty,
-    Value)
-import bayesumis.umis_math_model_helper as math_helper
+    UniformUncertainty)
+
 
 class UmisMathModel():
     """
@@ -46,7 +44,8 @@ class UmisMathModel():
             process_outflows_dict: Dict[str, Set[Flow]],
             external_inflows: Set[Flow],
             external_outflows: Set[Flow],
-            transfer_coefficient_obs: List['TCObs'],
+            transformation_coeff_obs: Dict[str, 'TransformationCoefficient'],
+            distribution_coeff_obs: Dict[str, 'DistributionCoefficients'],
             reference_material: Material,
             reference_time: Timeframe):
         """
@@ -64,6 +63,12 @@ class UmisMathModel():
         external_outflows (set(flow)): The outflows from inside the model to a
             process outside the model
 
+        tranformation_coeff_obs (dict(str, TransformationCoefficient)): Maps a
+            transformation process id to its transfer coefficient observation
+
+        distribution_coeff_obs (dict(str, DistributionCoefficient)): Maps a
+            distribution process id to its transfer coefficient observation
+            
         reference_material (Material): The material being balanced
 
         reference_time (Timeframe): The timeframe over which the stocks and
@@ -79,13 +84,8 @@ class UmisMathModel():
         self.__id_math_process_dict: Dict[str, MathProcess] = {}
         """ Maps a math process id to its math process """
 
-        self.__input_priors: Set[InputPrior] = set()
-
-        self.__normal_observations: Set[StafParameter] = set()
-        """ Collection of normally distributed observations of Staf values """
-
-        self.__lognormal_observations: Set[StafParameter] = set()
-        """ Collection of lognormally distributed observations of Staf values """
+        self.__input_priors: InputPriors = InputPriors()
+        """ Keeps track of inputs to the mathematical model """
 
         self.__flow_observations: Set[StafParameter] = set()
         # Set of relevant flows with random variable and index information
@@ -93,8 +93,54 @@ class UmisMathModel():
         self.__create_math_processes(
             umis_processes,
             process_outflows_dict,
-            external_inflows,
             external_outflows)
+
+        self.__create_input_priors(external_inflows)
+
+        self.__create_flow_observations(
+            umis_processes,
+            process_outflows_dict,
+            external_outflows)
+
+        with pm.Model():
+
+            tc_matrix = self.__create_transfer_coefficient_matrix(
+                transformation_coeff_obs,
+                distribution_coeff_obs)
+
+    def __create_input_priors(self, external_inflows: Set[Flow]):
+        """
+        Add observations of inflows to the model as prior distributions
+
+        Args
+        ----
+        external_inflows (set(Flow)): Flows to processes inside the model from
+            outside the model
+        """
+        
+        pass
+
+    def __create_flow_observations(
+            self,
+            umis_processes: Set[UmisProcess],
+            process_outflows_dict: Dict[str, Set[Flow]],
+            external_outflows: Set[Flow]):
+        """
+        Store relevant observations of stock and flow values
+
+        Args
+        ----
+        umis_processes (Set[UmisProcess]): Set of the UmisProcesses in the
+            model
+
+        process_outflows_dict (dict(str, set(Flow)): Dictionary mapping
+            process_id to the process' outflows
+
+        external_outflows (set(flow)): The outflows from inside the model to a
+            process outside the model
+        """
+        # TODO
+        pass
 
     def __create_math_process(
             self,
@@ -137,65 +183,76 @@ class UmisMathModel():
             self,
             umis_processes: Set[UmisProcess],
             process_outflows_dict: Dict[str, Set[Flow]],
-            external_inflows: Set[Flow],
             external_outflows: Set[Flow]):
-        """ Generates the math models of processes from stocks and flows """
+        """
+        Generates the math models of processes from stocks and flows
 
+        Args
+        ----
+        umis_processes (Set[UmisProcess]): Set of the UmisProcesses in the
+            model
+
+        process_outflows_dict (dict(str, set(Flow)): Dictionary mapping
+            process_id to the process' outflows
+
+        external_outflows (set(flow)): The outflows from inside the model to a
+            process outside the model
+        """
+
+        self.__create_math_processes_from_internal_flows(process_outflows_dict)
+        self.__create_math_processes_from_external_outflows(external_outflows)
         self.__create_math_processes_from_stocks(umis_processes)
 
     def __create_math_processes_from_internal_flows(
             self,
-            internal_flows: Set[Flow]):
+            process_outflows_dict: Dict[str, Set[Flow]]):
         """
         Take the flows and creates internal_flows from them
 
         Args
         ----
-        internal_flows (set(Flow)): Flows internal to the diagram
+        process_outflows_dict (dict(str, set(Flow))): Maps a process to its
+            outflows
         """
-        for flow in internal_flows:
-            # Checks flow is about correct reference time
-            if flow.reference.time == self.reference_time:
-                
-                value = flow.get_value(self.reference_material)
-                # Checks flow has an entry for the reference material
-                if value:
 
-                    # TODO Unit reconciliation
-                    # Would involve getting value and checking unit
+        for origin_id, outflows in process_outflows_dict.items():
 
-                    origin_id = self.__get_process_math_id(
-                        flow.origin.uuid,
-                        flow.reference.space.id)
+            for flow in outflows:
+                # Checks flow is about correct reference time
+                if flow.reference.time == self.reference_time:
 
-                    destination_id = self.__get_process_math_id(
-                        flow.destination.uuid,
-                        flow.reference.space.uuid)
+                    value = flow.get_value(self.reference_material)
+                    # Checks flow has an entry for the reference material
+                    if value:
 
-                    # If origin process has not been created yet then
-                    # create it
-                    if (not self.__id_math_process_dict
-                                .__contains__(origin_id)):
-                        self.__create_math_process(
-                            origin_id,
-                            flow.origin.process_type,
-                            {destination_id})
-                    # Otherwise add the outflow to the existing process
+                        # TODO Unit reconciliation
+                        # Would involve getting value and checking unit
+                        destination_id = flow.destination.diagram_id
+
+                        # If origin process has not been created yet then
+                        # create it
+                        if (not self.__id_math_process_dict
+                                    .__contains__(origin_id)):
+                            self.__create_math_process(
+                                origin_id,
+                                flow.origin.process_type,
+                                {destination_id})
+                        # Otherwise add the outflow to the existing process
+                        else:
+                            self.__id_math_process_dict[origin_id] \
+                                .add_outflow(destination_id)
+
+                        # If destination process has not been created yet then
+                        # create it
+                        if (not self.__id_math_process_dict
+                                    .__contains__(destination_id)):
+                            self.__create_math_process(
+                                destination_id,
+                                flow.destination.process_type)
+
                     else:
-                        self.__id_math_process_dict[origin_id] \
-                            .add_outflow(destination_id)
-
-                    # If destination process has not been created yet then
-                    # create it
-                    if (not self.__id_math_process_dict
-                                .__contains__(destination_id)):
-                        self.__create_math_process(
-                            destination_id,
-                            flow.destination.process_type)
-
-                else:
-                    # TODO do material reconciliation stuff
-                    continue
+                        # TODO do material reconciliation stuff
+                        continue
 
     def __create_math_processes_from_external_outflows(
             self,
@@ -210,20 +267,16 @@ class UmisMathModel():
         for flow in outflows:
             # Checks flow is about correct reference time
             if flow.reference.time == self.reference_time:
-                
-                value = flow.get_value(self.reference_material) 
+
+                value = flow.get_value(self.reference_material)
                 # Checks flow has an entry for the reference material
                 if value:
 
                     # TODO Unit reconciliation
 
-                    origin_id = self.__get_process_math_id(
-                        flow.origin.uuid,
-                        flow.reference.space.id)
+                    origin_id = flow.origin.diagram_id
 
-                    destination_id = self.__get_process_math_id(
-                        flow.destination.uuid,
-                        flow.reference.space.uuid)
+                    destination_id = flow.destination.diagram_id
 
                     # If origin process has not been created yet then
                     # create it
@@ -271,47 +324,37 @@ class UmisMathModel():
 
                 # Check stock is about correct reference time
                 if stock.reference.time == self.reference_time:
-                    
+
                     value = stock.get_value(self.reference_material)
                     # Check if stock has value for reference material
                     if value:
-   
-                        if value > 0:
-                            # Model as a flow to a storage process
-                            origin_id = self.__get_process_math_id(
-                                process.uuid,
-                                stock.reference.space.uuid)
 
-                            dest_id = self.__get_process_storage_math_id(
-                                process.uuid,
-                                stock.reference.space.uuid)
+                        # Model as a flow to a storage process
+                        origin_id = process.diagram_id
 
-                            # If origin process has not been created yet then
-                            # create it
-                            if (not self.__id_math_process_dict
-                                        .__contains__(origin_id)):
-                                self.__create_math_process(
-                                    origin_id,
-                                    stock.origin.process_type,
-                                    {dest_id})
-                            # Otherwise add the outflow to the existing process
-                            else:
-                                self.__id_math_process_dict[origin_id] \
-                                    .add_outflow(dest_id)
+                        dest_id = self.__get_storage_process_id(
+                            process.diagram_id)
 
-                            # If destination process has not been created yet then
-                            # create it as a storage process
-                            if (not self.__id_math_process_dict
-                                        .__contains__(dest_id)):
-                                self.__create_math_process(
-                                    dest_id,
-                                    'Storage')
-
+                        # If origin process has not been created yet then
+                        # create it
+                        if (not self.__id_math_process_dict
+                                    .__contains__(origin_id)):
+                            self.__create_math_process(
+                                origin_id,
+                                process.process_type,
+                                {dest_id})
+                        # Otherwise add the outflow to the existing process
                         else:
-                            # Model as an internal flow
-                            
-                        # find process id
-                        pass
+                            self.__id_math_process_dict[origin_id] \
+                                .add_outflow(dest_id)
+
+                        # If destination process has not been created yet
+                        # then create it as a storage process
+                        if (not self.__id_math_process_dict
+                                    .__contains__(dest_id)):
+                            self.__create_math_process(
+                                dest_id,
+                                'Storage')
 
                     else:
                         # TODO more material reconciliation stuff
@@ -329,7 +372,7 @@ class UmisMathModel():
         Args
         ----
         val_uncertainty (Uncertainty): Uncertainty of staf value
-        origin_process_id (str):
+        origin_process_id (str): Id of origin process
         dest_process_id (str): Id of destination process
         """
 
@@ -356,7 +399,53 @@ class UmisMathModel():
                 val_uncertainty.standard_deviation)
 
             self.__lognormal_observations.add(observation)
-        
+
+    def __create_transfer_coefficient_matrix(
+            self,
+            transformation_coeffs_obs: Dict[str, 'TransformationCoefficient'],
+            distribution_coeffs_obs: Dict[str, 'DistributionCoefficients']) \
+            -> T.Variable:
+        """
+        Builds matrix with transfer coeffs represented as random variables
+
+        Args
+        ----
+        transformation_coeffs_obs (dict(str, TransformationCoefficient)):
+            Maps transformation process ids to an observation of its
+            transfer coefficient
+
+        distribution_coeffs_obs (dict(str, DistributionCoefficients)):
+            Maps distribution process ids to an observation of its transfer
+            coefficients
+        """
+        num_of_processes = self.__id_math_process_dict.keys().__len__()
+
+        tc_matrix = T.zeros((num_of_processes, num_of_processes))
+
+        for process_id, math_process in self.__id_math_process_dict.items():
+            tc_observation = None
+            if isinstance(math_process, MathTransformationProcess):
+                tc_observation = transformation_coeffs_obs.get(process_id)
+
+            if isinstance(math_process, MathDistributionProcess):
+                tc_observation = distribution_coeffs_obs.get(process_id)
+
+            outflow_tc_rvs = math_process.create_outflow_tc_rvs(tc_observation)
+            dest_processes = [flow_tc.destination_process_id
+                              for flow_tc in outflow_tc_rvs]
+            
+            dest_rvs = [flow_tc.random_variable
+                        for flow_tc in outflow_tc_rvs]
+
+            origin_ind = math_process.process_ind
+
+            dest_inds = [p.process_ind for p in dest_processes]
+
+            tc_matrix = T.set_subtensor(
+                tc_matrix[[origin_ind], dest_inds], dest_rvs)
+
+        return tc_matrix
+
     def __get_process_ind(self, process_id: str) -> int:
         """ Returns the index of the process in the matrix if id exists """
 
@@ -367,45 +456,25 @@ class UmisMathModel():
 
         return ind
 
-    def __get_process_math_id(
+    def __get_storage_process_id(
             self,
-            process_stafdb_id: str,
-            space_stafdb_id: str) -> str:
-        """
-        Makes a math id from process and space stafdb ids
-        
-        Args
-        ----
-        process_stafdb_id (str): Id of process in stafdb
-        space_stafdb_id (str): Process space's id in stafdb
-        """
-        process_math_id = "{}_{}".format(
-            process_stafdb_id, space_stafdb_id)
-
-        return process_math_id
-
-    def __get_process_storage_math_id(
-            self,
-            process_stafdb_id: str,
-            space_stafdb_id: str) -> str:
+            process_diagram_id: str) -> str:
         """
         Makes a math id for storage to a process
-        
+
         Args
         ----
-        process_stafdb_id (str): Id of process in stafdb
-        space_stafdb_id (str): Process space's id in stafdb
+        process_stafdb_id (str): Id of process in umis diagram
         """
-        process_math_id = "{}_{}_STORAGE".format(
-            process_stafdb_id, space_stafdb_id)
+        storage_process_id = "{}_STORAGE".format(process_diagram_id)
 
-        return process_math_id
+        return storage_process_id
 
 
 class TransformationCoefficient():
     """
     TC for a transformation process with storage, modelled as normally
-    distributed. Represent the proportion going into storage
+    distributed. Represents the proportion going into storage
 
     Attributes
     ----------
@@ -439,24 +508,47 @@ class TransformationCoefficient():
         self.sd = logit_range_sd(lower_uncertainty, upper_uncertainty)
 
 
-class DistributionCoefficients():
+class OutflowCoefficient():
     """
-    TC(s) for a distribution process with storage, modelled as normally
-    distributed
+    Outflow and its transfer coefficient
 
     Attributes
     ----------
-    shares (List[float]): Expected values of TCs
+    outflow_id (str): Id of receiving process for this transfer coefficient
+    transfer_coefficient (float):
     """
 
-    def __init__(self, shares: List[float]):
+    def __init__(self, outflow_id: str, transfer_coefficient: float):
+        """
+        Args
+        ----
+        outflow_id (str): Id of receiving process for this transfer coefficient
+        transfer_coefficient (float):
+        """
+        self.outflow_id = outflow_id
+        self.transfer_coefficient = transfer_coefficient
+
+
+class DistributionCoefficients():
+    """
+    TC(s) for a distribution process modelled as a dirichlet
+    distribution
+
+    Attributes
+    ----------
+    outflow_coefficients (List[OutflowCoefficient]): Expected values of TCs
+    """
+
+    def __init__(self, outflow_coefficients: List[OutflowCoefficient]):
         """
         Args
         ----------
-        shares (List[float]): Expected values of TCs
+        outflow_coefficients (List[OutflowCoefficient]): Expected values of TCs
         """
 
-        self.shares = shares
+        self.shares = [oc.transfer_coefficient for oc in outflow_coefficients]
+        self.outflow_processes = [oc.outflow_id
+                                  for oc in outflow_coefficients]
 
 
 class MathProcess():
@@ -489,6 +581,34 @@ class MathProcess():
         self.process_ind = process_ind
         self.outflow_processes_ids = outflow_processes_ids
         self.n_outflows = len(outflow_processes_ids)
+
+
+class OutflowTCRandomVariable():
+    """
+    Transfer coefficient for each outflow represented as a random variable
+
+    Attributes
+    ----------
+    origin_process_id (str): Origin of outflow
+    destination_process_id (str): Destination of outflow
+    random_variable (pm.Continuous): Random variable of TC
+    """
+
+    def __init__(
+            self,
+            origin_process_id: str,
+            destination_process_id: str,
+            random_variable: pm.Continuous):
+        """
+        Args
+        ----------
+        origin_process_id (str): Origin of outflow
+        destination_process_id (str): Destination of outflow
+        random_variable (pm.Continuous): Random variable of TC
+        """
+        self.origin_process_id = origin_process_id
+        self.destination_process_id = destination_process_id
+        self.random_variable = random_variable
 
 
 class MathDistributionProcess(MathProcess):
@@ -535,9 +655,10 @@ class MathDistributionProcess(MathProcess):
         self.outflow_processes_ids.add(outflow_process_id)
         self.n_outflows += 1
 
-    def create_param_rv(
+    def create_outflow_tc_rvs(
             self,
-            dist_coeffs: DistributionCoefficients = None):
+            dist_coeffs: DistributionCoefficients = None) \
+            -> List[OutflowTCRandomVariable]:
         """
         Create RVs for transfer coefficients for the process
 
@@ -553,17 +674,36 @@ class MathDistributionProcess(MathProcess):
             # If no coefficients supplied, model as a uniform dirichlet
             # distribution
             shares = np.ones(self.n_outflows, dtype=np.dtype(float))
+            outflow_process_ids = self.outflow_processes_ids
         else:
-            shares = dist_coeffs.shares
+            shares = np.array(dist_coeffs.shares)
+            outflow_process_ids = dist_coeffs.outflow_processes
 
         if(len(shares) != self.n_outflows):
             raise ValueError(
                 "Must supply a transfer_coefficient for each outflow or None")
-        
+
         if self.n_outflows == 1:
-            return pm.Deterministic("P_{}".format(self.process_id), T.ones(1,))
+            random_variable = pm.Deterministic(
+                "P_{}".format(self.process_id), T.ones(1,))
+
+            outflow_tc_random_variables = [OutflowTCRandomVariable(
+                self.process_id,
+                self.outflow_processes_ids[0],
+                random_variable)]
+
+            return outflow_tc_random_variables
         else:
-            return pm.Dirichlet("P_{}".format(self.process_id), shares)
+            random_variable = pm.Dirichlet(
+                "P_{}".format(self.process_id), shares)
+
+            outflow_tc_random_variables = [OutflowTCRandomVariable(
+                self.process_id,
+                out_id,
+                random_variable[i])  # pylint: disable=unsubscriptable-object
+                for i, out_id in enumerate(outflow_process_ids)]
+
+            return outflow_tc_random_variables
 
     @staticmethod
     def transfer_functions(transfer_coeff_rv):
@@ -579,7 +719,7 @@ class MathDistributionProcess(MathProcess):
         logistic_tc_1 = (T.exp(transfer_coeff_rv[0]) /
                          1 + T.exp(transfer_coeff_rv[0]))
 
-        return T.stack(logistic_tc_1, 1 - logistic_tc_1) 
+        return T.stack(logistic_tc_1, 1 - logistic_tc_1)
 
 
 class MathTransformationProcess(MathProcess):
@@ -634,9 +774,10 @@ class MathTransformationProcess(MathProcess):
         self.outflow_processes_ids.add(outflow_process_id)
         self.n_outflows += 1
 
-    def create_param_rv(
+    def create_outflow_tc_rvs(
             self,
-            transform_coeff: TransformationCoefficient = None):
+            transform_coeff: TransformationCoefficient = None) \
+            -> List[OutflowTCRandomVariable]:
         """
         Create RV for the transfer coefficient for the process
 
@@ -650,23 +791,66 @@ class MathTransformationProcess(MathProcess):
                 self.n_outflows > 0)
 
         if self.n_outflows == 1:
-            return pm.Deterministic("P_{}".format(self.process_id), T.ones(1,))
+            random_variable = pm.Deterministic(
+                "P_{}_{}".format(
+                    self.process_id,
+                    self.outflow_processes_ids[0]),
+                T.ones(1,))
 
-        if not transform_coeff:
-            # If no tc supplied, model as a uniform distribution
-            return pm.Uniform("P_{}".format(self.process_id), lower=0, upper=1)
+            return [OutflowTCRandomVariable(
+                self.process_id,
+                self.outflow_processes_ids[0],
+                random_variable)]
+
+        if self.n_outflows == 2:
+            if not transform_coeff:
+                # If no tc supplied, model as a uniform distribution
+                random_variable1 = pm.Uniform(
+                    "P_{}_{}".format(
+                        self.process_id,
+                        self.outflow_processes_ids[0]),
+                    lower=0,
+                    upper=1)
+
+            else:
+
+                if ((transform_coeff.sd and not transform_coeff.mean) or
+                        (transform_coeff.mean and not transform_coeff.sd)):
+                    raise ValueError(
+                        "Must supply either both mean and standard deviation" +
+                        " or no tranfer coefficient")
+
+                normal_rv = pm.Normal(
+                    "P_{}_{}".format(
+                        self.process_id,
+                        self.outflow_processes_ids[0]),
+                    mu=transform_coeff.mean,
+                    sd=transform_coeff.sd)
+
+                # Logistic efficiency
+                random_variable1 = T.exp(normal_rv) / (1 + T.exp(normal_rv))
+
+            outflow_tc1 = OutflowTCRandomVariable(
+                    self.process_id,
+                    self.outflow_processes_ids[0],
+                    random_variable1)
+
+            random_variable2 = pm.Deterministic(
+                "P_{}_{}".format(
+                    self.process_id,
+                    self.outflow_processes_ids[1]),
+                1-random_variable1)
+
+            outflow_tc2 = OutflowTCRandomVariable(
+                self.process_id,
+                self.outflow_processes_ids[1],
+                random_variable2)
+
+            return [outflow_tc1, outflow_tc2]
+
         else:
-
-            if ((transform_coeff.sd and not transform_coeff.mean) or
-                    (transform_coeff.mean and not transform_coeff.sd)):
-                raise ValueError(
-                    "Must supply either both mean and standard deviation or " +
-                    "no tranfer coefficient")
-
-            return pm.Normal(
-                "P_{}".format(self.process_id),
-                mu=transform_coeff.mean,
-                sd=transform_coeff.sd)
+            raise ValueError("Transformation process should not have more" +
+                             " than 2 outflows")
 
     @staticmethod
     def transfer_functions(transfer_coeff_rv):
@@ -689,7 +873,8 @@ class MathStorageProcess(MathProcess):
     ----------
     process_id (str): Math id of the process
     process_ind (int): Index of process in the matrix
-    outflow_processes_ids (list(str)): Math ids of each process receiving a flow
+    outflow_processes_ids (list(str)): Math ids of each process receiving a
+        flow
     n_outflows (int): Number of outflows of the process
     """
 
@@ -704,11 +889,11 @@ class MathStorageProcess(MathProcess):
         # not have outflows
         super().__init__(process_id, process_ind, set())
 
-    def create_param_rv(self):
+    def create_outflow_tc_rvs(self):
         """
         No random variable associated with process as there are no outflows
         """
-        return None
+        return []
 
     @staticmethod
     def transfer_functions(tranfer_coeff_rv):
@@ -763,34 +948,39 @@ class StafParameter():
 
 class InputPrior():
     """
-    Prior knowledge of flow of material into the mathematical model
+    Prior knowledge of flow of material into the mathematical model from
+    external process or from stock (virtual reservoir)
 
     Attributes
     ----------
+    origin_process_id (str): Math id of the origin process
     destination_process_id (str): Math id of the receiving process
     uncertainty (Uncertainty): Quantity of flow and its uncertainty
     """
 
     def __init__(
             self,
+            origin_process_id: str,
             destination_process_id: str,
             uncertainty: Uncertainty):
         """
         Args
-        ----------
+        ----
+        origin_process_id (str): Math id of the origin process
         destination_process_id (str): Math id of the receiving process
         uncertainty (Uncertainty): Quantity of flow and its uncertainty
         """
-
+        self.origin_process_id = origin_process_id
         self.destination_process_id = destination_process_id
         self.uncertainty = uncertainty
 
-    def create_param_rv(self):
+    def create_outflow_tc_rvs(self):
         """
         Create random variable for this parameter
         """
 
-        param_name = "IF_{}".format(self.destination_process_id)
+        param_name = "IF_{}-{}".format(
+            self.origin_process_id, self.destination_process_id)
 
         if isinstance(self.uncertainty, UniformUncertainty):
             return pm.Uniform(
@@ -814,4 +1004,51 @@ class InputPrior():
                 else:
                     raise ValueError(
                         "Uncertainty parameter is of unknown distribution")
-                
+
+
+class InputPriors():
+    """
+    Stores the two types of inputs into the mathematical model, inputs from
+    stock and inputs from external processes
+
+    Attributes
+    ----------
+    external_inputs_dict (dict(str, list(InputPrior)): Maps the process id to
+        its inputs from external processes
+    """
+
+    def __init__(self):
+
+        self.external_inputs_dict: Dict[str, list(InputPrior)] = {}
+
+    def add_external_input(self, process_id: str, input_prior: InputPrior):
+        """
+        Adds a prior input to the external inputs dict
+
+        Args
+        ----
+        process_id (str): Diagram id of process receiving the input
+        input_prior (InputPrior):
+        """
+        if self.external_inputs_dict.__contains__(process_id):
+            self.external_inputs_dict[process_id].append(input_prior)
+        else:
+            self.external_inputs_dict[process_id] = [input_prior]
+
+    def get_width_of_input_matrix(self):
+        """
+        Calculate the width of the input matrix as the largest number of inputs
+        to any one process
+        """
+        max_width = 0
+
+        for inputs in self.external_inputs_dict.values():
+            if inputs.__len__() > max_width:
+                max_width = inputs.__len__()
+
+        return max_width
+
+
+if __name__ == '__main__':
+    sys.exit(1)
+

@@ -10,7 +10,6 @@ from bayesumis.umis_data_models import (
     Space,
     Stock,
     Timeframe,
-    TransferCoefficient,
     Uncertainty,
     Value
 )
@@ -20,16 +19,17 @@ from bayesumis.umis_diagram import UmisDiagram
 class TestUmisDiagram(unittest.TestCase):
 
     def test_add_internal_flow(self):
-        process1 = UmisProcess(
-            '1', 'Proc1', 'Process 1', False, 'parent', 'Transformation')
-        process2 = UmisProcess(
-            '2', 'PROC2', 'Process 2', False, 'parent', 'Distribution')
 
         material = Material('1', 'WAT', 'Water', 'parent', False)
         space = Space('1', 'Bristol')
-        timeframe = Timeframe(2001, 2001)
+        timeframe = Timeframe('1', 2001, 2001)
 
-        value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
+        process1 = UmisProcess(
+            '1', 'Proc1', 'Process1', space, False, 'parent', 'Transformation')
+        process2 = UmisProcess(
+            '2', 'PROC2', 'Process 2', space, False, 'parent', 'Distribution')
+
+        value = Value('1', 30, Mock(Uncertainty), 'g')
 
         reference = Reference(space, space, timeframe, material)
         flow = Flow('1', 'Flow 1', reference, value, False, process1, process2)
@@ -41,24 +41,55 @@ class TestUmisDiagram(unittest.TestCase):
             stocks={}
         )
 
-        expected_process_store = {'1': process1, '2': process2}
-        expected_process_outflows_dict = {'1': {flow}, '2': set()}
+        expected_process_store = {'1_1': process1, '2_1': process2}
+        expected_process_outflows_dict = {'1_1': {flow}, '2_1': set()}
+
+        self.assertEqual(expected_process_store, umis_diagram.process_store)
+        self.assertEqual(
+            expected_process_outflows_dict, umis_diagram.process_outflows_dict)
+
+    def test_add_two_processes_different_space(self):
+        material = Material('1', 'WAT', 'Water', 'parent', False)
+        space1 = Space('1', 'Bristol')
+        space2 = Space('2', 'Edinburgh')
+
+        timeframe = Timeframe('1', 2001, 2001)
+
+        process1 = UmisProcess(
+            '1', 'Proc1', 'Proces1', space1, False, 'parent', 'Transformation')
+        process2 = UmisProcess(
+            '1', 'Proc1', 'Proces1', space2, False, 'parent', 'Distribution')
+
+        value = Value('1', 30, Mock(Uncertainty), 'g')
+
+        reference = Reference(space1, space2, timeframe, material)
+        flow = Flow('1', 'Flow 1', reference, value, False, process1, process2)
+
+        umis_diagram = UmisDiagram(
+            external_inflows={},
+            internal_flows={flow},
+            external_outflows={},
+            stocks={}
+        )
+
+        expected_process_store = {'1_1': process1, '1_2': process2}
+        expected_process_outflows_dict = {'1_1': {flow}, '1_2': set()}
 
         self.assertEqual(expected_process_store, umis_diagram.process_store)
         self.assertEqual(
             expected_process_outflows_dict, umis_diagram.process_outflows_dict)
 
     def test_add_two_internal_flows(self):
-        process1 = UmisProcess(
-            '1', 'Proc1', 'Process 1', False, 'parent', 'Transformation')
-        process2 = UmisProcess(
-            '2', 'PROC2', 'Process 2', False, 'parent', 'Distribution')
-
         material = Material('1', 'WAT', 'Water', 'parent', False)
         space = Space('1', 'Bristol')
-        timeframe = Timeframe(2001, 2001)
+        timeframe = Timeframe('1', 2001, 2001)
 
-        value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
+        process1 = UmisProcess(
+            '1', 'Proc1', 'Process1', space, False, 'parent', 'Transformation')
+        process2 = UmisProcess(
+            '2', 'PROC2', 'Process 2', space, False, 'parent', 'Distribution')
+
+        value = Value('1', 30, Mock(Uncertainty), 'g')
 
         reference = Reference(space, space, timeframe, material)
         flow1 = Flow('1', 'Flow1', reference, value, False, process1, process2)
@@ -71,24 +102,24 @@ class TestUmisDiagram(unittest.TestCase):
             stocks={}
         )
 
-        expected_process_store = {'1': process1, '2': process2}
-        expected_process_outflows_dict = {'1': {flow1, flow2}, '2': set()}
+        expected_process_store = {'1_1': process1, '2_1': process2}
+        expected_process_outflows_dict = {'1_1': {flow1, flow2}, '2_1': set()}
 
         self.assertEqual(expected_process_store, umis_diagram.process_store)
         self.assertEqual(
             expected_process_outflows_dict, umis_diagram.process_outflows_dict)
 
     def test_add_two_internal_flows_different_processes(self):
-        process1 = UmisProcess(
-            '1', 'Proc1', 'Process 1', False, 'parent', 'Transformation')
-        process2 = UmisProcess(
-            '2', 'PROC2', 'Process 2', False, 'parent', 'Distribution')
-
         material = Material('1', 'WAT', 'Water', 'parent', False)
         space = Space('1', 'Bristol')
-        timeframe = Timeframe(2001, 2001)
+        timeframe = Timeframe('1', 2001, 2001)
 
-        value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
+        process1 = UmisProcess(
+            '1', 'Proc1', 'Process1', space, False, 'parent', 'Transformation')
+        process2 = UmisProcess(
+            '2', 'PROC2', 'Process 2', space, False, 'parent', 'Distribution')
+
+        value = Value('1', 30, Mock(Uncertainty), 'g')
 
         reference = Reference(space, space, timeframe, material)
         flow1 = Flow('1', 'Flow1', reference, value, False, process1, process2)
@@ -101,30 +132,31 @@ class TestUmisDiagram(unittest.TestCase):
             stocks={}
         )
 
-        expected_process_store = {'1': process1, '2': process2}
-        expected_process_outflows_dict = {'1': {flow1}, '2': {flow2}}
+        expected_process_store = {'1_1': process1, '2_1': process2}
+        expected_process_outflows_dict = {'1_1': {flow1}, '2_1': {flow2}}
 
         self.assertEqual(expected_process_store, umis_diagram.process_store)
         self.assertEqual(
             expected_process_outflows_dict, umis_diagram.process_outflows_dict)
 
     def test_add_external_inflow(self):
+        material = Material('1', 'WAT', 'Water', 'parent', False)
+        space = Space('1', 'Bristol')
+        timeframe = Timeframe('1', 2001, 2001)
+
         external_process1 = UmisProcess(
             '1',
             'EXPROC1',
             'External Process 1',
+            space,
             False,
             'parent',
             'Transformation')
 
         process2 = UmisProcess(
-            '2', 'PROC2', 'Process 2', False, 'parent', 'Distribution')
+            '2', 'PROC2', 'Process 2', space, False, 'parent', 'Distribution')
 
-        material = Material('1', 'WAT', 'Water', 'parent', False)
-        space = Space('1', 'Bristol')
-        timeframe = Timeframe(2001, 2001)
-
-        value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
+        value = Value('1', 30, Mock(Uncertainty), 'g')
 
         reference = Reference(space, space, timeframe, material)
 
@@ -144,8 +176,8 @@ class TestUmisDiagram(unittest.TestCase):
             stocks={}
         )
 
-        expected_process_store = {'2': process2}
-        expected_process_outflows_dict = {'2': set()}
+        expected_process_store = {'2_1': process2}
+        expected_process_outflows_dict = {'2_1': set()}
         expected_external_inflows = {flow}
 
         self.assertEqual(expected_process_store, umis_diagram.process_store)
@@ -157,10 +189,15 @@ class TestUmisDiagram(unittest.TestCase):
         self.assertEqual(reference, umis_diagram.reference)
 
     def test_add_external_outflow(self):
+        material = Material('1', 'WAT', 'Water', 'parent', False)
+        space = Space('1', 'Bristol')
+        timeframe = Timeframe('1', 2001, 2001)
+
         process1 = UmisProcess(
             '1',
             'PROC1',
             'Process 1',
+            space,
             False,
             'parent',
             'Transformation')
@@ -169,15 +206,12 @@ class TestUmisDiagram(unittest.TestCase):
             '2',
             'EXPROC2',
             'External Process 2',
+            space,
             False,
             'parent',
             'Distribution')
 
-        material = Material('1', 'WAT', 'Water', 'parent', False)
-        space = Space('1', 'Bristol')
-        timeframe = Timeframe(2001, 2001)
-
-        value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
+        value = Value('1', 30, Mock(Uncertainty), 'g')
 
         reference = Reference(space, space, timeframe, material)
 
@@ -197,8 +231,8 @@ class TestUmisDiagram(unittest.TestCase):
             stocks={}
         )
 
-        expected_process_store = {'1': process1}
-        expected_process_outflows_dict = {'1': {flow}}
+        expected_process_store = {'1_1': process1}
+        expected_process_outflows_dict = {'1_1': {flow}}
         expected_external_outflows = {flow}
 
         self.assertEqual(expected_process_store, umis_diagram.process_store)
@@ -210,19 +244,19 @@ class TestUmisDiagram(unittest.TestCase):
         self.assertEqual(reference, umis_diagram.reference)
 
     def test_add_stock_to_process(self):
-        process1 = UmisProcess(
-            '1', 'Proc1', 'Process 1', False, 'parent', 'Transformation')
-        process2 = UmisProcess(
-            '2', 'PROC2', 'Process 2', False, 'parent', 'Distribution')
-
         material = Material('1', 'WAT', 'Water', 'parent', False)
         material2 = Material('2', 'WAT', 'Water', 'parent', False)
 
         space = Space('1', 'Bristol')
-        timeframe = Timeframe(2001, 2001)
+        timeframe = Timeframe('1', 2001, 2001)
 
-        value = Value(30, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
-        value2 = Value(50, Mock(Uncertainty), 'g', Mock(TransferCoefficient))
+        process1 = UmisProcess(
+            '1', 'Proc1', 'Process 1', space, False, 'parent', 'Transformation')
+        process2 = UmisProcess(
+            '2', 'PROC2', 'Process 2', space, False, 'parent', 'Distribution')
+
+        value = Value('1', 30, Mock(Uncertainty), 'g')
+        value2 = Value('2', 50, Mock(Uncertainty), 'g')
 
         reference = Reference(space, space, timeframe, material)
         flow = Flow('1', 'Flow 1', reference, value, False, process1, process2)
@@ -239,12 +273,13 @@ class TestUmisDiagram(unittest.TestCase):
             stocks={stock}
         )
 
-        expected_process_store = {'1': process1, '2': process2}
-        expected_process_outflows_dict = {'1': {flow}, '2': set()}
+        expected_process_store = {'1_1': process1, '2_1': process2}
+        expected_process_outflows_dict = {'1_1': {flow}, '2_1': set()}
 
         self.assertEqual(expected_process_store, umis_diagram.process_store)
         self.assertEqual(
             expected_process_outflows_dict, umis_diagram.process_outflows_dict)
 
         self.assertEqual(
-            stock, umis_diagram.process_store['1'].get_stock('Net'))
+            stock, umis_diagram.process_store['1_1'].get_stock('Net'))
+

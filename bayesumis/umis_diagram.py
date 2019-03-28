@@ -80,18 +80,18 @@ class UmisDiagram():
             helper_functions.check_flow_type(flow)
 
             origin_process = flow.origin
-            if origin_process.uuid not in self.process_outflows_dict:
-                self.process_outflows_dict[origin_process.uuid] = {flow}
-                self.process_store[origin_process.uuid] = origin_process
+            if origin_process.diagram_id not in self.process_outflows_dict:
+                self.process_outflows_dict[origin_process.diagram_id] = {flow}
+                self.process_store[origin_process.diagram_id] = origin_process
             else:
-                self.process_outflows_dict[origin_process.uuid].add(flow)
+                self.process_outflows_dict[origin_process.diagram_id].add(flow)
 
-            destination_process = flow.destination
-            if destination_process.uuid not in self.process_outflows_dict:
-                self.process_outflows_dict[destination_process.uuid] = set()
+            dest_process = flow.destination
+            if dest_process.diagram_id not in self.process_outflows_dict:
+                self.process_outflows_dict[dest_process.diagram_id] = set()
 
-                self.process_store[destination_process.uuid] = \
-                    destination_process
+                self.process_store[dest_process.diagram_id] = \
+                    dest_process
 
             self.__update_diagram_reference(flow.reference)
 
@@ -103,14 +103,14 @@ class UmisDiagram():
             helper_functions.check_flow_type(flow)
 
             origin_process = flow.origin
-            if origin_process.uuid in self.process_outflows_dict:
-                self.process_outflows_dict[origin_process.uuid].add(flow)
+            if origin_process.diagram_id in self.process_outflows_dict:
+                self.process_outflows_dict[origin_process.diagram_id].add(flow)
             else:
-                self.process_outflows_dict[origin_process.uuid] = {flow}
-                self.process_store[origin_process.uuid] = origin_process
+                self.process_outflows_dict[origin_process.diagram_id] = {flow}
+                self.process_store[origin_process.diagram_id] = origin_process
 
-            destination_process = flow.destination
-            if destination_process.uuid in self.process_outflows_dict:
+            dest_process = flow.destination
+            if dest_process.diagram_id in self.process_outflows_dict:
                 raise ValueError(
                     "Destination process of external outflow ({}) is in"
                     .format(flow)) + "diagram"
@@ -132,7 +132,7 @@ class UmisDiagram():
             helper_functions.check_flow_type(flow)
 
             origin_process = flow.origin
-            if origin_process.uuid in self.process_outflows_dict:
+            if origin_process.diagram_id in self.process_outflows_dict:
                 raise ValueError(
                     "Origin process of external inflow ({}) is in diagram"
                     .format(flow))
@@ -142,11 +142,11 @@ class UmisDiagram():
                     "External inflow {} has already".format(flow) +
                     " been input")
 
-            destination_process = flow.destination
-            if destination_process.uuid not in self.process_outflows_dict:
-                self.process_outflows_dict[destination_process.uuid] = set()
-                self.process_store[destination_process.uuid] = \
-                    destination_process
+            dest_process = flow.destination
+            if dest_process.diagram_id not in self.process_outflows_dict:
+                self.process_outflows_dict[dest_process.diagram_id] = set()
+                self.process_store[dest_process.diagram_id] = \
+                    dest_process
 
             self.external_inflows.add(flow)
 
@@ -160,7 +160,8 @@ class UmisDiagram():
                 raise TypeError(
                     "Expected type Stock, was {} instead".format(type(stock)))
 
-            stock_process_id = stock.process_id
+            stock_process_id = UmisProcess.create_diagram_id(
+                stock.process_stafdb_id, stock.reference.origin_space)
             if stock_process_id not in self.process_outflows_dict:
                 raise ValueError(
                     "Stock cannot be added for process with id: {}"

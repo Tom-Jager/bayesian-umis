@@ -278,8 +278,6 @@ class Value():
     quantity (float): Amount of material, if None then the amount is unknown
     uncertainty (Uncertainty): Uncertainty around the value
     unit (str): The unit of the material
-    transfer_coefficient (TransferCoefficient): The transfer
-        coefficient for the stock or flow, if None then the amount is unknown
     """
 
     def __init__(
@@ -287,8 +285,7 @@ class Value():
             stafdb_id: str,
             quantity: float,
             uncertainty: Uncertainty,
-            unit: str,
-            transfer_coefficient: Optional[TransferCoefficient]):
+            unit: str):
         """
         Args
         ----
@@ -296,15 +293,12 @@ class Value():
         quantity (float): Amount of material, if None then amount is unknown
         uncertainty (Uncertainty): Uncertainty around the value
         unit (str): The unit of the material
-        transfer_coefficient (TransferCoefficient): The transfer
-            coefficient for the stock or flow, if None then the coefficient
-            is unknown
         """
         self.stafdb_id = stafdb_id
         self.quantity = quantity
+
         self.uncertainty = uncertainty
         self.unit = unit
-        self.transfer_coefficient = transfer_coefficient
 
     def __str__(self):
         value_string = "{} {}".format(self.quantity, self.unit)
@@ -377,7 +371,8 @@ class Stock(Staf):
     Attributes
     ----------
     stock_type (str): Whether the stock represents net or total stock
-    process_id (str): Process the stock is storing material from
+    process_stafdb_id (str): Id of the process the stock is storing material
+        from
     """
 
     def __init__(
@@ -387,7 +382,7 @@ class Stock(Staf):
             reference: Reference,
             material_values_dict: Dict[Material, Value],
             stock_type: str,
-            process_id: str):
+            process_stafdb_id: str):
         """
         Args
         ----
@@ -395,17 +390,18 @@ class Stock(Staf):
         reference (Reference): Attributes the stock or flow is about
         name (str): Name of the stock or flow
         stock_type (str): Whether the stock represents net or total stock
-        process_id (Process): Process the stock is storing material from
+        process_stafdb_id (str): Id of the process the stock is storing
+            material from
         material_values_dict (dict(Material, Value)): Amount of stock for a
             given material
         """
 
         super().__init__(stafdb_id, name, reference, material_values_dict)
         self.stock_type = stock_type
-        self.process_id = process_id
+        self.process_stafdb_id = process_stafdb_id
 
 
-class UmisProcess(collections.abc.Hashable):
+class UmisProcess():
     """
     A process representing either tranformation or distribution of material
 
@@ -450,7 +446,7 @@ class UmisProcess(collections.abc.Hashable):
             raise ValueError("Process type is invalid, expected either " +
                              "'Transformation' or 'Distribution': got {} "
                              .format(process_type))
-        self.diagram_id = "{}_{}".format(stafdb_id, reference_space.stafdb_id)
+        self.diagram_id = self.create_diagram_id(stafdb_id, reference_space)
         self.stafdb_id = stafdb_id
         self.code = code
         self.name = name
@@ -472,6 +468,18 @@ class UmisProcess(collections.abc.Hashable):
 
         assert isinstance(stock, Stock)
         self.__stock_dict[stock.stock_type] = stock
+
+    @staticmethod
+    def create_diagram_id(process_stafdb_id: str, space: Space):
+        """
+        Creates diagram id for this process
+
+        Args
+        ----
+        process_stafdb_id (str):
+        space (Space): Space the process is in
+        """
+        return "{}_{}".format(process_stafdb_id, space.stafdb_id)
 
     def get_stock(self, stock_type: str):
         """
@@ -496,7 +504,7 @@ class UmisProcess(collections.abc.Hashable):
         return self.diagram_id == process_b.diagram_id
 
     def __hash__(self):
-        return self.stafdb_id.__hash__()
+        return self.diagram_id.__hash__()
 
 
 class Flow(Staf):
@@ -541,6 +549,9 @@ class Flow(Staf):
         origin: Process flow starts at
         destination: Process flow finishes at
         """
+        if origin == destination:
+            raise ValueError("Origin and destination process must be of" +
+                             "different types")
 
         if origin.process_type == destination.process_type:
             raise ValueError(
