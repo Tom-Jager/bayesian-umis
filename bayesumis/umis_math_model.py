@@ -84,7 +84,7 @@ class UmisMathModel():
         self.__id_math_process_dict: Dict[str, MathProcess] = {}
         """ Maps a math process id to its math process """
 
-        self.__input_priors: InputPriors = InputPriors()
+        self.__input_observations: InputObservations = InputObservations()
         """ Keeps track of inputs to the mathematical model """
 
         self.__flow_observations: Set[StafParameter] = set()
@@ -95,7 +95,7 @@ class UmisMathModel():
             process_outflows_dict,
             external_outflows)
 
-        self.__create_input_priors(external_inflows)
+        self.__create_input_observations(external_inflows)
 
         self.__create_flow_observations(
             umis_processes,
@@ -108,17 +108,43 @@ class UmisMathModel():
                 transformation_coeff_obs,
                 distribution_coeff_obs)
 
-    def __create_input_priors(self, external_inflows: Set[Flow]):
+    def __create_input_observations(self, external_inflows: Set[Flow]):
         """
-        Add observations of inflows to the model as prior distributions
+        Add observations of inflows to the model as observation distributions
 
         Args
         ----
         external_inflows (set(Flow)): Flows to processes inside the model from
             outside the model
         """
-        
-        pass
+        for flow in external_inflows:
+            
+            flow: Flow = flow
+            if flow.reference.time == self.reference_time:
+
+                value = flow.get_value(self.reference_material)
+
+                if value:
+
+                    # TODO unit reconciliation
+                    origin_id = flow.origin.diagram_id
+
+                    destination_id = flow.destination.diagram_id
+
+                    if destination_id not in self.__id_math_process_dict:
+                        raise ValueError("This diagram does not contain" +
+                                         " destination process with id {}"
+                                         .format(destination_id))
+
+                    input_observation = InputObservation(
+                        origin_id, destination_id, value.uncertainty)
+
+                    self.__input_observations.add_external_input(
+                        destination_id, input_observation)
+
+                else:
+                    # TODO material reconciliation
+                    continue
 
     def __create_flow_observations(
             self,
@@ -946,9 +972,9 @@ class StafParameter():
         return ind_string.__hash__()
 
 
-class InputPrior():
+class InputObservation():
     """
-    Prior knowledge of flow of material into the mathematical model from
+    Observation knowledge of flow of material into the mathematical model from
     external process or from stock (virtual reservoir)
 
     Attributes
@@ -979,7 +1005,7 @@ class InputPrior():
         Create random variable for this parameter
         """
 
-        param_name = "IF_{}-{}".format(
+        param_name = "F_{}-{}".format(
             self.origin_process_id, self.destination_process_id)
 
         if isinstance(self.uncertainty, UniformUncertainty):
@@ -1006,34 +1032,34 @@ class InputPrior():
                         "Uncertainty parameter is of unknown distribution")
 
 
-class InputPriors():
+class InputObservations():
     """
     Stores the two types of inputs into the mathematical model, inputs from
     stock and inputs from external processes
 
     Attributes
     ----------
-    external_inputs_dict (dict(str, list(InputPrior)): Maps the process id to
+    external_inputs_dict (dict(str, list(InputObservation)): Maps the process id to
         its inputs from external processes
     """
 
     def __init__(self):
 
-        self.external_inputs_dict: Dict[str, list(InputPrior)] = {}
+        self.external_inputs_dict: Dict[str, list(InputObservation)] = {}
 
-    def add_external_input(self, process_id: str, input_prior: InputPrior):
+    def add_external_input(self, process_id: str, input_observation: InputObservation):
         """
-        Adds a prior input to the external inputs dict
+        Adds a observation of input to the external inputs dict
 
         Args
         ----
         process_id (str): Diagram id of process receiving the input
-        input_prior (InputPrior):
+        input_observation (InputObservation):
         """
         if self.external_inputs_dict.__contains__(process_id):
-            self.external_inputs_dict[process_id].append(input_prior)
+            self.external_inputs_dict[process_id].append(input_observation)
         else:
-            self.external_inputs_dict[process_id] = [input_prior]
+            self.external_inputs_dict[process_id] = [input_observation]
 
     def get_width_of_input_matrix(self):
         """
