@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import Mock
 
-from bayesumis.umis_data_models import (
+from ..bayesumis.umis_data_models import (
     Flow,
     Material,
     UmisProcess,
@@ -13,7 +13,7 @@ from bayesumis.umis_data_models import (
     Uncertainty,
     Value
 )
-from bayesumis.umis_diagram import UmisDiagram
+from ..bayesumis.umis_diagram import UmisDiagram
 
 
 class TestUmisDiagram(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestUmisDiagram(unittest.TestCase):
         value = Value('1', 30, Mock(Uncertainty), 'g')
 
         reference = Reference(space, space, timeframe, material)
-        flow = Flow('1', 'Flow 1', reference, value, False, process1, process2)
+        flow = Flow('1', 'Flow 1', reference, value, process1, process2)
 
         umis_diagram = UmisDiagram(
             external_inflows={},
@@ -63,7 +63,7 @@ class TestUmisDiagram(unittest.TestCase):
         value = Value('1', 30, Mock(Uncertainty), 'g')
 
         reference = Reference(space1, space2, timeframe, material)
-        flow = Flow('1', 'Flow 1', reference, value, False, process1, process2)
+        flow = Flow('1', 'Flow 1', reference, value, process1, process2)
 
         umis_diagram = UmisDiagram(
             external_inflows={},
@@ -92,8 +92,8 @@ class TestUmisDiagram(unittest.TestCase):
         value = Value('1', 30, Mock(Uncertainty), 'g')
 
         reference = Reference(space, space, timeframe, material)
-        flow1 = Flow('1', 'Flow1', reference, value, False, process1, process2)
-        flow2 = Flow('2', 'Flow2', reference, value, False, process1, process2)
+        flow1 = Flow('1', 'Flow1', reference, value, process1, process2)
+        flow2 = Flow('2', 'Flow2', reference, value, process1, process2)
 
         umis_diagram = UmisDiagram(
             external_inflows={},
@@ -122,8 +122,8 @@ class TestUmisDiagram(unittest.TestCase):
         value = Value('1', 30, Mock(Uncertainty), 'g')
 
         reference = Reference(space, space, timeframe, material)
-        flow1 = Flow('1', 'Flow1', reference, value, False, process1, process2)
-        flow2 = Flow('2', 'Flow2', reference, value, False, process2, process1)
+        flow1 = Flow('1', 'Flow1', reference, value, process1, process2)
+        flow2 = Flow('2', 'Flow2', reference, value, process2, process1)
 
         umis_diagram = UmisDiagram(
             external_inflows={},
@@ -165,7 +165,6 @@ class TestUmisDiagram(unittest.TestCase):
             'Flow 1',
             reference,
             value,
-            False,
             external_process1,
             process2)
 
@@ -220,7 +219,6 @@ class TestUmisDiagram(unittest.TestCase):
             'Flow 1',
             reference,
             value,
-            False,
             process1,
             external_process2)
 
@@ -251,7 +249,7 @@ class TestUmisDiagram(unittest.TestCase):
         timeframe = Timeframe('1', 2001, 2001)
 
         process1 = UmisProcess(
-            '1', 'Proc1', 'Process 1', space, False, 'parent', 'Transformation')
+            '1', 'Proc1', 'Process1', space, False, 'parent', 'Transformation')
         process2 = UmisProcess(
             '2', 'PROC2', 'Process 2', space, False, 'parent', 'Distribution')
 
@@ -259,7 +257,7 @@ class TestUmisDiagram(unittest.TestCase):
         value2 = Value('2', 50, Mock(Uncertainty), 'g')
 
         reference = Reference(space, space, timeframe, material)
-        flow = Flow('1', 'Flow 1', reference, value, False, process1, process2)
+        flow = Flow('1', 'Flow 1', reference, value, process1, process2)
 
         reference2 = Reference(space, space, timeframe, material2)
 

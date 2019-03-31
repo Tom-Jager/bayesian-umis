@@ -13,6 +13,7 @@ from typing import List, Tuple
 
 import numpy as np
 
+
 def make_distribution_tcs(
         shares: List[float],
         with_stddev: Tuple[int, float] = None) -> List[float]:

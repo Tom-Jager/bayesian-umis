@@ -1,5 +1,5 @@
 """ Helper functions for umis_diagram.py """
-from bayesumis.umis_data_models import Flow
+from .umis_data_models import Flow
 
 
 def check_flow_type(flow):

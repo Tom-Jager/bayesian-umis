@@ -3,7 +3,6 @@ Module containing all the data models for the UMIS diagram, not
 mathematical models
 """
 
-import collections.abc
 import sys
 from typing import Optional, Dict
 
@@ -30,7 +29,10 @@ class Uncertainty():
         name: Name of distribution
         mean: Expected value
         """
+        assert isinstance(name, str)
         self.name = name
+
+        mean = float(mean)
         self.mean = mean
 
 
@@ -56,14 +58,14 @@ class UniformUncertainty(Uncertainty):
         lower (float): Lower bound of probability distribution
         upper (float): Upper bound of probability distribution
         """
-        assert(upper > lower)
+        lower = float(lower)
+        upper = float(upper)
+        assert(upper >= lower)
         assert(lower >= 0)
-
+        mean = (upper + lower) / 2
+        super(UniformUncertainty, self).__init__("Uniform", mean)
         self.lower = lower
         self.upper = upper
-
-        mean = (upper + lower) / 2
-        super().__init__("Uniform", mean)
 
 
 class NormalUncertainty(Uncertainty):
@@ -87,11 +89,13 @@ class NormalUncertainty(Uncertainty):
         mean (float)
         standard_deviation (float)
         """
+        mean = float(mean)
+        standard_deviation = float(standard_deviation)
 
         assert(mean >= 0)
 
+        super(NormalUncertainty, self).__init__("Normal", mean)
         self.standard_deviation = standard_deviation
-        super().__init__("Normal", mean)
 
 
 class LognormalUncertainty(Uncertainty):
@@ -115,11 +119,12 @@ class LognormalUncertainty(Uncertainty):
         mean (float)
         standard_deviation (float)
         """
+        mean = float(mean)
+        standard_deviation = float(standard_deviation)
 
         assert(mean >= 0)
-
+        super(LognormalUncertainty, self).__init__("Lognormal", mean)
         self.standard_deviation = standard_deviation
-        super().__init__("Log-Normal", mean)
 
 
 class Space():
@@ -145,6 +150,8 @@ class Space():
         stafdb_id: Id for the reference space in STAFDB
         name: Name of the reference space
         """
+        assert isinstance(stafdb_id, str)
+        assert isinstance(name, str)
 
         self.stafdb_id = stafdb_id
         self.name = name
@@ -171,7 +178,7 @@ class Material():
             stafdb_id: str,
             code: str,
             name: str,
-            parent_name: Optional[str],
+            parent_name: str,
             is_separator: bool):
         """
         Args
@@ -183,6 +190,11 @@ class Material():
         parent_name: Name of the aggregation of this material
         is_separator: flag to representing identical disaggregations
         """
+        assert isinstance(stafdb_id, str)
+        assert isinstance(code, str)
+        assert isinstance(name, str)
+        assert isinstance(parent_name, str)
+        assert isinstance(is_separator, bool)
 
         self.stafdb_id = stafdb_id
         self.code = code
@@ -218,6 +230,9 @@ class Timeframe():
         start_time (int): Start year
         end_time (int): End year
         """
+        assert isinstance(stafdb_id, str)
+        assert isinstance(start_time, int)
+        assert isinstance(end_time, int)
 
         assert(start_time <= end_time)
         self.stafdb_id = stafdb_id
@@ -261,6 +276,10 @@ class Reference():
         time (Timeframe): Year stock or flow is in reference to
         material (Material): Material stock or flow is in reference to
         """
+        assert isinstance(origin_space, Space)
+        assert isinstance(destination_space, Space)
+        assert isinstance(time, Timeframe)
+        assert isinstance(material, Material)
 
         self.origin_space = origin_space
         self.destination_space = destination_space
@@ -294,7 +313,13 @@ class Value():
         uncertainty (Uncertainty): Uncertainty around the value
         unit (str): The unit of the material
         """
+        assert isinstance(stafdb_id, str)
+        assert isinstance(uncertainty, Uncertainty)
+        assert isinstance(unit, str)
+
         self.stafdb_id = stafdb_id
+
+        quantity = float(quantity)
         self.quantity = quantity
 
         self.uncertainty = uncertainty
@@ -333,10 +358,18 @@ class Staf():
         material_values_dict (dict(Material, Value)): Amount of stock for a
             given material
         """
+        assert isinstance(stafdb_id, str)
+        assert isinstance(name, str)
+        assert isinstance(reference, Reference)
 
         self.stafdb_id = stafdb_id
         self.name = name
         self.reference = reference
+
+        for key, value in material_values_dict.items():
+            assert isinstance(key, Material)
+            assert isinstance(value, Value)
+            
         self.__material_values_dict = material_values_dict
 
     def get_value(self, material: Material):
@@ -353,7 +386,8 @@ class Staf():
         Value of material otherwise
         """
         assert isinstance(material, Material)
-        return self.__material_values_dict.get(material)
+        value = self.__material_values_dict.get(material)
+        assert isinstance(value, Value)
 
 
 class Stock(Staf):
@@ -396,9 +430,21 @@ class Stock(Staf):
             given material
         """
 
-        super().__init__(stafdb_id, name, reference, material_values_dict)
+        super(
+            Stock,
+            self).__init__(stafdb_id, name, reference, material_values_dict)
+
+        assert stock_type == 'Net' or stock_type == 'Total'
         self.stock_type = stock_type
+
+        assert isinstance(process_stafdb_id, str)
         self.process_stafdb_id = process_stafdb_id
+
+    def get_stock_process_diagram_id(self):
+        """
+        Returns the process this stock is on's diagram id
+        """
+        return UmisProcess.create_diagram_id(self.process_stafdb_id)
 
 
 class UmisProcess():
@@ -441,20 +487,30 @@ class UmisProcess():
         process_type (str): Type of process, either 'Transformation' or
             'Distribution'
         """
-
-        if process_type != "Transformation" and process_type != "Distribution":
-            raise ValueError("Process type is invalid, expected either " +
-                             "'Transformation' or 'Distribution': got {} "
-                             .format(process_type))
-        self.diagram_id = self.create_diagram_id(stafdb_id, reference_space)
+        assert isinstance(stafdb_id, str)
+        assert isinstance(code, str)
+        assert isinstance(name, str)
+        assert isinstance(reference_space, Space)
+        assert isinstance(is_separator, bool)
+        assert isinstance(parent_name, str)
+        
         self.stafdb_id = stafdb_id
         self.code = code
         self.name = name
         self.reference_space = reference_space
         self.is_separator = is_separator
         self.parent_name = parent_name
+
+        if process_type != "Transformation" and process_type != "Distribution":
+            raise ValueError("Process type is invalid, expected either " +
+                             "'Transformation' or 'Distribution': got {} "
+                             .format(process_type))
+
         self.process_type = process_type
+
         self.__stock_dict = {}
+
+        self.diagram_id = self.create_diagram_id(stafdb_id, reference_space)
 
     def add_stock(self, stock: Stock):
         """
@@ -521,7 +577,6 @@ class Flow(Staf):
 
     Attributes
     ----------
-    is_separator (bool): True if flow has identical disaggregation
     origin (UmisProcess): The process the flow starts at
     destination (UmisProcess): The process the flow finishes at
     """
@@ -532,7 +587,6 @@ class Flow(Staf):
                 name: str,
                 reference: Reference,
                 material_values_dict: Dict[Material, Value],
-                is_separator: bool,
                 origin: UmisProcess,
                 destination: UmisProcess):
         """
@@ -545,7 +599,6 @@ class Flow(Staf):
         reference (Reference): Reference material, space and time for flow
         material_values_dict (dict(Material, Value)): Amount of stock for a
             given material
-        is_separator: True if flow has identical disaggregation
         origin: Process flow starts at
         destination: Process flow finishes at
         """
@@ -561,8 +614,12 @@ class Flow(Staf):
                     origin.is_transformation,
                     destination.is_transformation))
 
-        super().__init__(stafdb_id, name, reference, material_values_dict)
-        self.is_separator = is_separator
+        super(
+            Flow,
+            self).__init__(stafdb_id, name, reference, material_values_dict)
+        
+        assert isinstance(origin, UmisProcess)
+        assert isinstance(destination, UmisProcess)
 
         self.origin = origin
         self.destination = destination

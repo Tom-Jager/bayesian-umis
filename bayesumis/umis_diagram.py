@@ -2,12 +2,13 @@
 import sys
 from typing import Dict, Set
 
-from bayesumis.umis_data_models import (
+from .umis_data_models import (
     Flow,
     UmisProcess,
     Reference,
     Stock)
-import bayesumis.umis_diagram_helper_functions as helper_functions
+
+from . import umis_diagram_helper_functions as helper_functions
 
 
 class UmisDiagram():
@@ -103,13 +104,8 @@ class UmisDiagram():
             helper_functions.check_flow_type(flow)
 
             origin_process = flow.origin
-            if origin_process.diagram_id in self.process_outflows_dict:
-                self.process_outflows_dict[origin_process.diagram_id].add(flow)
-            else:
-                self.process_outflows_dict[origin_process.diagram_id] = {flow}
-                self.process_store[origin_process.diagram_id] = origin_process
-
             dest_process = flow.destination
+
             if dest_process.diagram_id in self.process_outflows_dict:
                 raise ValueError(
                     "Destination process of external outflow ({}) is in"
@@ -119,6 +115,9 @@ class UmisDiagram():
                 raise ValueError(
                     "External outflow {} has already".format(flow) +
                     " been input")
+
+            if origin_process.diagram_id not in self.process_outflows_dict:
+                self.process_outflows_dict[origin_process.diagram_id] = set()
 
             self.external_outflows.add(flow)
 
