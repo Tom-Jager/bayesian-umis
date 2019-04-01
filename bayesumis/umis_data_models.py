@@ -369,7 +369,7 @@ class Staf():
         for key, value in material_values_dict.items():
             assert isinstance(key, Material)
             assert isinstance(value, Value)
-            
+
         self.__material_values_dict = material_values_dict
 
     def get_value(self, material: Material):
@@ -387,7 +387,8 @@ class Staf():
         """
         assert isinstance(material, Material)
         value = self.__material_values_dict.get(material)
-        assert isinstance(value, Value)
+        assert isinstance(value, Value) or value is None
+        return value
 
 
 class Stock(Staf):
@@ -554,7 +555,9 @@ class UmisProcess():
             raise ValueError("Incorrect stock type submitted, expected 'Net'" +
                              "or 'Total', recieved {}".format(stock_type))
 
-        return self.__stock_dict.get(stock_type)
+        stock = self.__stock_dict.get(stock_type)
+        assert isinstance(stock, Stock) or stock is None
+        return stock
 
     def __eq__(self, process_b):
         return self.diagram_id == process_b.diagram_id

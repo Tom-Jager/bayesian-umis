@@ -14,6 +14,7 @@ from typing import Dict, List, Set
 
 import numpy as np
 import pymc3 as pm
+import theano
 import theano.tensor as T
 from theano.tensor.nlinalg import matrix_inverse
 
@@ -78,6 +79,8 @@ class UmisMathModel():
         reference_time (Timeframe): The timeframe over which the stocks and
             flows are modeled
         """
+        # theano.config.mode = 'FAST_RUN'
+        # theano.config.optimizer = 'fast_compile'
 
         self.reference_material = reference_material
         self.reference_time = reference_time
@@ -118,6 +121,8 @@ class UmisMathModel():
 
             input_matrix, ones_matrix = self.__create_input_matrix(
                 input_priors)
+
+            input_matrix = pm.Deterministic('External Inflows', input_matrix)
 
             input_sums = T.dot(input_matrix, ones_matrix)
 
@@ -180,7 +185,7 @@ class UmisMathModel():
             lists of normally and lognormally distributed staf observations
         """
         if isinstance(uncertainty, UniformUncertainty):
-            return
+            return normal_staf_obs, lognormal_staf_obs
         else:
 
             staf_ob = StafObservation(
@@ -210,15 +215,15 @@ class UmisMathModel():
         input_matrix = T.zeros((num_processes, input_matrix_width))
 
         for process_id, inputs in input_priors.external_inputs_dict.items():
-            process_index = self.__id_math_process_dict[process_id]
+            process_index = self.__id_math_process_dict[process_id].process_ind
 
-            input_rvs = [inp.create_input_rv() for inp in inputs]
-
-            input_matrix = T.set_subtensor(
-                input_matrix[process_index], input_rvs)
+            for inp in inputs:
+                input_rv = inp.create_input_rv()
+                input_matrix = T.set_subtensor(
+                    input_matrix[process_index], input_rv)
 
         # matrix of ones to sum inputs for an internal process
-        ones_matrix = T.ones((input_matrix_width))
+        ones_matrix = T.ones((input_matrix_width, 1))
 
         return input_matrix, ones_matrix
 
@@ -605,7 +610,7 @@ class UmisMathModel():
                     # Would involve getting value and checking unit
                     origin_id = outflow.origin.diagram_id
                     destination_id = outflow.destination.diagram_id
-                    uncertainty = outflow.uncertainty
+                    uncertainty = value.uncertainty
 
                     normal_staf_obs, lognormal_staf_obs = \
                         self.__add_staf_observation(
@@ -757,20 +762,20 @@ class UmisMathModel():
             if isinstance(math_process, MathDistributionProcess):
                 tc_observation = distribution_coeffs_obs.get(process_id)
 
-            outflow_tc_rvs = math_process.create_outflow_tc_rvs(tc_observation)
-            dest_processes = [self.__id_math_process_dict
-                              [flow_tc.destination_process_id]
-                              for flow_tc in outflow_tc_rvs]
-
-            dest_rvs = [flow_tc.random_variable
-                        for flow_tc in outflow_tc_rvs]
+            if tc_observation:
+                dest_process_ids, dest_rv = \
+                    math_process.create_outflow_tc_rvs(tc_observation)
+            else:
+                dest_process_ids, dest_rv = \
+                    math_process.create_outflow_tc_rvs()
 
             origin_ind = math_process.process_ind
 
-            dest_inds = [p.process_ind for p in dest_processes]
+            dest_inds = [self.__id_math_process_dict[pid].process_ind
+                         for pid in dest_process_ids]
 
             tc_matrix = T.set_subtensor(
-                tc_matrix[[origin_ind], dest_inds], dest_rvs)
+                tc_matrix[[origin_ind], dest_inds], dest_rv)
 
         return tc_matrix
 
@@ -802,16 +807,18 @@ class UmisMathModel():
 class TransformationCoefficient():
     """
     TC for a transformation process with storage, modelled as normally
-    distributed. Represents the proportion going into storage
+    distributed.
 
     Attributes
     ------------------
+    process_id (str): Id of the process the TC is for
     mean (np.float): Expected value of TC
     sd (np.float): Standard deviation of TC
     """
 
     def __init__(
             self,
+            process_id: str,
             mean: float,
             lower_uncertainty: float,
             upper_uncertainty: float):
@@ -821,13 +828,17 @@ class TransformationCoefficient():
 
         Args
         -----------
+        process_id (str): Id of the process the TC is for        
         mean (float): Expected value of TC
         lower_uncertainty (float):  Lower uncertainty value of TC
         upper_uncertainty (float): Upper uncertainty value of TC
         """
+        assert isinstance(process_id, str)
         assert isinstance(mean, float)
         assert isinstance(lower_uncertainty, float)
         assert isinstance(upper_uncertainty, float)
+
+        self.process_id = process_id
 
         def logit(x):
             return -np.log(1/x - 1)
@@ -839,7 +850,7 @@ class TransformationCoefficient():
         self.sd = logit_range_sd(lower_uncertainty, upper_uncertainty)
 
 
-class OutflowCoefficient():
+class DistributionCoefficient():
     """
     Outflow and its transfer coefficient
 
@@ -871,14 +882,16 @@ class DistributionCoefficients():
 
     Attributes
     -----------------
-    outflow_coefficients (List[OutflowCoefficient]): Expected values of TCs
+    outflow_coefficients (List[DistributionCoefficient]):
+        Expected values of TCs
     """
 
-    def __init__(self, outflow_coefficients: List[OutflowCoefficient]):
+    def __init__(self, outflow_coefficients: List[DistributionCoefficient]):
         """
         Args
         -----------------
-        outflow_coefficients (List[OutflowCoefficient]): Expected values of TCs
+        outflow_coefficients (List[DistributionCoefficient]):
+            Expected values of TCs
         """
 
         self.shares = [oc.transfer_coefficient for oc in outflow_coefficients]
@@ -1024,26 +1037,15 @@ class MathDistributionProcess(MathProcess):
                 "Must supply a transfer_coefficient for each outflow or None")
 
         if self.n_outflows == 1:
+            (outflow_process_id, ) = self.outflow_process_ids
             random_variable = pm.Deterministic(
                 "P_{}".format(self.process_id), T.ones(1,))
 
-            outflow_tc_random_variables = [OutflowTCRandomVariable(
-                self.process_id,
-                self.outflow_process_ids[0],
-                random_variable)]
-
-            return outflow_tc_random_variables
         else:
             random_variable = pm.Dirichlet(
                 "P_{}".format(self.process_id), shares)
 
-            outflow_tc_random_variables = [OutflowTCRandomVariable(
-                self.process_id,
-                out_id,
-                random_variable[i])  # pylint: disable=unsubscriptable-object
-                for i, out_id in enumerate(outflow_process_ids)]
-
-            return outflow_tc_random_variables
+        return outflow_process_ids, random_variable
 
     @staticmethod
     def transfer_functions(transfer_coeff_rv: pm.Continuous):
@@ -1125,25 +1127,23 @@ class MathTransformationProcess(MathProcess):
 
         if self.n_outflows == 1:
             random_variable = pm.Deterministic(
-                "P_{}_{}".format(
-                    self.process_id,
-                    self.outflow_process_ids[0]),
+                "P_{}".format(
+                    self.process_id),
                 T.ones(1,))
 
-            return [OutflowTCRandomVariable(
-                self.process_id,
-                self.outflow_process_ids[0],
-                random_variable)]
+            return self.outflow_process_ids, random_variable
 
         if self.n_outflows == 2:
             if not transform_coeff:
                 # If no tc supplied, model as a uniform distribution
-                random_variable1 = pm.Uniform(
-                    "P_{}_{}".format(
-                        self.process_id,
-                        self.outflow_process_ids[0]),
+                coefficient_1 = pm.Uniform(
+                    "P_{}".format(
+                        self.process_id),
                     lower=0,
                     upper=1)
+
+                random_variable = T.stack([coefficient_1, 1-coefficient_1])
+                return self.outflow_process_ids, random_variable
 
             else:
 
@@ -1153,33 +1153,21 @@ class MathTransformationProcess(MathProcess):
                         "Must supply either both mean and standard deviation" +
                         " or no tranfer coefficient")
 
+                other_process_id = self.__get_other_process_id(
+                    transform_coeff.process_id)
+
                 normal_rv = pm.Normal(
-                    "P_{}_{}".format(
-                        self.process_id,
-                        self.outflow_process_ids[0]),
+                    "P_{}".format(
+                        self.process_id),
                     mu=transform_coeff.mean,
                     sd=transform_coeff.sd)
 
                 # Logistic efficiency
-                random_variable1 = T.exp(normal_rv) / (1 + T.exp(normal_rv))
+                coefficient_1 = T.exp(normal_rv) / (1 + T.exp(normal_rv))
 
-            outflow_tc1 = OutflowTCRandomVariable(
-                    self.process_id,
-                    self.outflow_process_ids[0],
-                    random_variable1)
-
-            random_variable2 = pm.Deterministic(
-                "P_{}_{}".format(
-                    self.process_id,
-                    self.outflow_process_ids[1]),
-                1-random_variable1)
-
-            outflow_tc2 = OutflowTCRandomVariable(
-                self.process_id,
-                self.outflow_process_ids[1],
-                random_variable2)
-
-            return [outflow_tc1, outflow_tc2]
+                random_variable = T.stack([coefficient_1, 1-coefficient_1])
+                process_ids = [transform_coeff.process_id, other_process_id]
+                return process_ids, random_variable
 
         else:
             raise ValueError("Transformation process should not have more" +
@@ -1196,6 +1184,25 @@ class MathTransformationProcess(MathProcess):
         tranfer_coeff_rv (pm.Continuous): RV representing transfer coefficients
         """
         return transfer_coeff_rv
+
+    def __get_other_process_id(self, tc_process_id: str):
+        """
+        Checks if the process id of the transfer coefficient is an outflow of
+        this process and if so returns the process id of the other outflow
+
+        Args
+        --------------
+        tc_process_id (str): Process id of transfer coefficient
+        """
+
+        if not self.outflow_process_ids.__contains__(tc_process_id):
+            raise ValueError("Process {} does not ".format(self.process_id) +
+                             "contain outflow for given transfer coefficient")
+
+        for outflow_id in self.outflow_process_ids:
+            if outflow_id != tc_process_id:
+                return outflow_id
+        raise ValueError("All outflows had process id of transfer coefficient")
 
 
 class MathStorageProcess(MathProcess):
@@ -1226,7 +1233,9 @@ class MathStorageProcess(MathProcess):
         """
         No random variable associated with process as there are no outflows
         """
-        return []
+        ls = []
+        rv = T.dvector()
+        return ls, 0
 
     @staticmethod
     def transfer_functions(tranfer_coeff_rv):
