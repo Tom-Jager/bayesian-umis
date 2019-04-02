@@ -14,7 +14,6 @@ from typing import Dict, List, Set
 
 import numpy as np
 import pymc3 as pm
-import theano
 import theano.tensor as T
 from theano.tensor.nlinalg import matrix_inverse
 
@@ -26,8 +25,7 @@ from ..bayesumis.umis_data_models import (
     Timeframe,
     UmisProcess,
     Uncertainty,
-    UniformUncertainty,
-    Value)
+    UniformUncertainty)
 
 
 class UmisMathModel():
@@ -79,9 +77,6 @@ class UmisMathModel():
         reference_time (Timeframe): The timeframe over which the stocks and
             flows are modeled
         """
-        # theano.config.mode = 'FAST_RUN'
-        # theano.config.optimizer = 'fast_compile'
-
         self.reference_material = reference_material
         self.reference_time = reference_time
 
@@ -122,9 +117,8 @@ class UmisMathModel():
             input_matrix, ones_matrix = self.__create_input_matrix(
                 input_priors)
 
-            input_matrix = pm.Deterministic('External Inflows', input_matrix)
-
-            input_sums = T.dot(input_matrix, ones_matrix)
+            input_sums = pm.Deterministic(
+                'Input Sums', T.dot(input_matrix, ones_matrix))
 
             process_throughputs = pm.Deterministic(
                 'X',
@@ -133,16 +127,16 @@ class UmisMathModel():
                     input_sums))
 
             stafs = pm.Deterministic(
-                'Stafs', tc_matrix * process_throughputs[:, None])
+                'stafs', tc_matrix * process_throughputs[:, None])
 
             if len(normal_staf_means > 0):
-                normal_staf_obs = pm.Deterministic(
+                normal_staf_obs_eqs = pm.Deterministic(
                     'normal_staf_obs_eqs',
-
                     T.tensordot(normal_staf_matrix, stafs))
+
                 pm.Normal(
                     'normal_staf_observations',
-                    mu=normal_staf_obs,
+                    mu=normal_staf_obs_eqs,
                     sd=normal_staf_sds,
                     observed=normal_staf_means)
             if len(lognormal_staf_means > 0):
@@ -195,11 +189,11 @@ class UmisMathModel():
                     uncertainty.standard_deviation)
 
             if isinstance(uncertainty, LognormalUncertainty):
-                normal_staf_obs.append(staf_ob)
+                lognormal_staf_obs.append(staf_ob)
             else:
                 if isinstance(uncertainty, NormalUncertainty):
 
-                    lognormal_staf_obs.append(staf_ob)
+                    normal_staf_obs.append(staf_ob)
                 else:
                     raise ValueError(
                         "Unsupported uncertainty type")
@@ -217,10 +211,10 @@ class UmisMathModel():
         for process_id, inputs in input_priors.external_inputs_dict.items():
             process_index = self.__id_math_process_dict[process_id].process_ind
 
-            for inp in inputs:
+            for i, inp in enumerate(inputs):
                 input_rv = inp.create_input_rv()
                 input_matrix = T.set_subtensor(
-                    input_matrix[process_index], input_rv)
+                    input_matrix[process_index, i], input_rv)
 
         # matrix of ones to sum inputs for an internal process
         ones_matrix = T.ones((input_matrix_width, 1))
@@ -1233,9 +1227,7 @@ class MathStorageProcess(MathProcess):
         """
         No random variable associated with process as there are no outflows
         """
-        ls = []
-        rv = T.dvector()
-        return ls, 0
+        return [], 0
 
     @staticmethod
     def transfer_functions(tranfer_coeff_rv):

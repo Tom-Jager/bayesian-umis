@@ -57,7 +57,7 @@ class DbStub():
             self,
             reference: Reference,
             material_val: Dict[Material, Value],
-            process_id: str,
+            process_stafdb_id: str,
             stock_type: str,
             name_prefix: str = ''):
 
@@ -70,7 +70,7 @@ class DbStub():
             reference,
             material_val,
             stock_type,
-            process_id)
+            process_stafdb_id)
 
         self._stock_id_c += 1
         print("|{}|".format(stafdb_id))
