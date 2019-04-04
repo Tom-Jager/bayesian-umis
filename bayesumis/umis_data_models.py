@@ -614,8 +614,8 @@ class Flow(Staf):
                 "Origin and Destination process must be of differing process" +
                 " types, instead origin: {} and destination: {}"
                 .format(
-                    origin.is_transformation,
-                    destination.is_transformation))
+                    origin.process_type,
+                    destination.process_type))
 
         super(
             Flow,
