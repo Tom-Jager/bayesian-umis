@@ -378,11 +378,13 @@ def get_umis_diagram_stocked():
 
     norm_uncert_100 = NormalUncertainty(mean=100, standard_deviation=1)
     norm_uncert_70 = NormalUncertainty(mean=70, standard_deviation=1)
+    norm_uncert_50 = NormalUncertainty(mean=50, standard_deviation=1)
     norm_uncert_20 = NormalUncertainty(mean=20, standard_deviation=0.5)
     uniform_uncert_0_150 = UniformUncertainty(lower=0, upper=150)
 
     value_100 = test_db.get_value(100, norm_uncert_100)
     value_70 = test_db.get_value(70, norm_uncert_70)
+    value_50 = test_db.get_value(50, norm_uncert_50)
     value_20 = test_db.get_value(20, norm_uncert_20)
     value_unknown = test_db.get_value(75, uniform_uncert_0_150)
 
