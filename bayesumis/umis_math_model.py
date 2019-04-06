@@ -15,7 +15,7 @@ from typing import Dict, List, Set, Tuple
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
-# from theano.tensor.nlinalg import matrix_inverse
+from theano.tensor.nlinalg import matrix_inverse
 
 from ..bayesumis.umis_data_models import (
     Flow,
@@ -80,7 +80,7 @@ class UmisMathModel():
         """
         self.reference_material = reference_material
         self.reference_time = reference_time
-        print("Version Fri 18:22")
+        print("Version sat 13:42")
         # Assigns a new index to each process
         self.__index_counter = 0
 
@@ -111,10 +111,6 @@ class UmisMathModel():
         with pm.Model() as self.pm_model:
             num_processes = len(self.__id_math_process_dict.keys())
 
-            staf_matrix = self.__create_staf_priors_matrix(staf_priors)
-
-            staf_matrix = pm.Deterministic('staf_matrix', staf_matrix)
-
             tc_matrix = self.__create_transfer_coefficient_matrix(
                 transformation_coeff_obs,
                 distribution_coeff_obs)
@@ -128,40 +124,19 @@ class UmisMathModel():
             input_sums = pm.Deterministic(
                 'Input Sums', T.sum(input_matrix, axis=1))
 
-            internal_inflow_sum_1 = pm.Deterministic(
-                'internal_inflow_sum_1',
-                T.sum(staf_matrix, axis=0))
+            process_throughputs = pm.Deterministic(
+                'X', T.dot(
+                    matrix_inverse(T.eye(num_processes) - tc_matrix.T),
+                    input_sums))
 
-            all_inflow_sum_1 = pm.Deterministic(
-                'all_inflow_sum_1',
-                internal_inflow_sum_1[:, None] + input_sums[:, None])
-
-            staf_eqs_1 = pm.Deterministic(
-                'staf_eqs_1', all_inflow_sum_1[:, None] * tc_matrix)
-
-            all_but_one_outflow_sum = pm.Deterministic(
-                'all_but_one_outflow_sum',
-                T.dot(
-                    staf_eqs_1,
-                    T.ones((num_processes, num_processes))
-                    - T.eye(num_processes)))
-
-            internal_inflow_sum_2 = pm.Deterministic(
-                'internal_inflow_sum_2',
-                T.sum(
-                    staf_eqs_1,
-                    axis=0))
-
-            staf_eqs_2 = pm.Deterministic(
-                'staf_eqs_2',
-                internal_inflow_sum_2[:, None]
-                - all_but_one_outflow_sum)
+            stafs = pm.Deterministic(
+                'stafs', tc_matrix * process_throughputs[:, None])
 
             if len(normal_staf_means > 0):
                 normal_staf_obs_eqs = pm.Deterministic(
                     'normal_staf_obs_eqs',
                     T.tensordot(
-                        normal_staf_obs_matrix, staf_eqs_2))
+                        normal_staf_obs_matrix, stafs))
 
                 pm.Normal(
                     'normal_staf_observations',
@@ -173,7 +148,7 @@ class UmisMathModel():
                 lognormal_staf_obs = pm.Deterministic(
                     'lognormal_staf_obs_eqs',
                     T.tensordot(
-                        lognormal_staf_matrix, staf_eqs_2))
+                        lognormal_staf_matrix, stafs))
 
                 pm.Lognormal(
                     'lognormal_staf_observations',
@@ -1347,7 +1322,7 @@ class MathTransformationProcess(MathProcess):
             outflow_id = outflow_2
             return storage_id, outflow_id
         else:
-            if self.outflow_process_ids[1].__contains__("STORAGE"):
+            if outflow_2.__contains__("STORAGE"):
                 storage_id = outflow_1
                 outflow_id = outflow_2
                 return storage_id, outflow_id
