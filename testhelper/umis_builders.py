@@ -5,7 +5,10 @@ from bayesumis.bayesumis.umis_data_models import (
     Reference,
     UniformUncertainty,
 )
-from bayesumis.bayesumis.umis_math_model import TransformationCoefficient
+from bayesumis.bayesumis.umis_math_model import (
+    DistributionCoefficients,
+    DistributionCoefficient,
+    TransformationCoefficient)
 from bayesumis.testhelper.test_helper import DbStub
 
 
@@ -378,13 +381,11 @@ def get_umis_diagram_stocked():
 
     norm_uncert_100 = NormalUncertainty(mean=100, standard_deviation=1)
     norm_uncert_70 = NormalUncertainty(mean=70, standard_deviation=1)
-    norm_uncert_50 = NormalUncertainty(mean=50, standard_deviation=1)
     norm_uncert_20 = NormalUncertainty(mean=20, standard_deviation=0.5)
     uniform_uncert_0_150 = UniformUncertainty(lower=0, upper=150)
 
     value_100 = test_db.get_value(100, norm_uncert_100)
     value_70 = test_db.get_value(70, norm_uncert_70)
-    value_50 = test_db.get_value(50, norm_uncert_50)
     value_20 = test_db.get_value(20, norm_uncert_20)
     value_unknown = test_db.get_value(75, uniform_uncert_0_150)
 
@@ -444,7 +445,7 @@ def get_umis_diagram_stocked():
         dict())
 
 
-def get_umis_diagram_stocked_with_tc():
+def get_umis_diagram_stocked_with_tcs():
     test_db = DbStub()
 
     ref_origin_space = test_db.get_space_by_num(1)
@@ -472,19 +473,23 @@ def get_umis_diagram_stocked_with_tc():
 
     p41 = test_db.get_umis_process(
         ref_origin_space,
-        'Transformation')
+        'Transformation')    
 
     p51 = test_db.get_umis_process(
         ref_destination_space,
         'Distribution')
 
     norm_uncert_100 = NormalUncertainty(mean=100, standard_deviation=1)
-    norm_uncert_70 = NormalUncertainty(mean=70, standard_deviation=1)
-    norm_uncert_20 = NormalUncertainty(mean=20, standard_deviation=0.5)
+    norm_uncert_70 = NormalUncertainty(mean=70, standard_deviation=5)
+    norm_uncert_50 = NormalUncertainty(mean=50, standard_deviation=1)
+    norm_uncert_30 = NormalUncertainty(mean=30, standard_deviation=1)
+    norm_uncert_20 = NormalUncertainty(mean=20, standard_deviation=3)
     uniform_uncert_0_150 = UniformUncertainty(lower=0, upper=150)
 
     value_100 = test_db.get_value(100, norm_uncert_100)
     value_70 = test_db.get_value(70, norm_uncert_70)
+    value_50 = test_db.get_value(50, norm_uncert_50)
+    value_30 = test_db.get_value(30, norm_uncert_30)
     value_20 = test_db.get_value(20, norm_uncert_20)
     value_unknown = test_db.get_value(75, uniform_uncert_0_150)
 
@@ -502,23 +507,30 @@ def get_umis_diagram_stocked_with_tc():
         p31,
         'f2')
 
+    f2_tc = DistributionCoefficient(p31.diagram_id, 0.7)
+
     f3 = test_db.get_flow(
         reference,
-        {ref_material: value_unknown},
+        {ref_material: value_30},
         p21,
         p41,
         'f3')
 
+    f3_tc = DistributionCoefficient(p41.diagram_id, 0.3)
+    p2_dcs = DistributionCoefficients([f2_tc, f3_tc])
+
     f4 = test_db.get_flow(
         reference,
-        {ref_material: value_unknown},
+        {ref_material: value_50},
         p31,
         p51,
         'f4')
 
+    s1_tc = TransformationCoefficient(0.29, 0.28, 0.3)
+
     f5 = test_db.get_flow(
         reference,
-        {ref_material: value_unknown},
+        {ref_material: value_30},
         p41,
         p51,
         'f5')
@@ -535,9 +547,10 @@ def get_umis_diagram_stocked_with_tc():
     external_outflows = {f4, f5}
     stocks = {s1}
 
-    p3_tc = TransformationCoefficient(p31.diagram_id, 0.29, 0.28, 0.3)
-    transformation_coefficient_obs = {p31.diagram_id: p3_tc}
-
+    transformation_coefficient_obs = {
+        p21.diagram_id: p2_dcs,
+        p31.diagram_id: s1_tc}
+    print("Designed 12:48")
     return (
         external_inflows,
         internal_flows,

@@ -15,6 +15,7 @@ from typing import Dict, List, Set, Tuple
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
+# from theano.tensor.nlinalg import matrix_inverse
 
 from ..bayesumis.umis_data_models import (
     Flow,
@@ -79,7 +80,7 @@ class UmisMathModel():
         """
         self.reference_material = reference_material
         self.reference_time = reference_time
-        print("Version Fri 12:41")
+        print("Version Fri 18:22")
         # Assigns a new index to each process
         self.__index_counter = 0
 
@@ -120,23 +121,23 @@ class UmisMathModel():
 
             tc_matrix = pm.Deterministic('TCs', tc_matrix)
 
-            input_matrix, ones_matrix = self.__create_input_matrix()
+            input_matrix = self.__create_input_matrix()
 
             input_matrix = pm.Deterministic('Inputs', input_matrix)
 
             input_sums = pm.Deterministic(
-                'Input Sums', T.dot(input_matrix, ones_matrix))
+                'Input Sums', T.sum(input_matrix, axis=1))
 
             internal_inflow_sum_1 = pm.Deterministic(
                 'internal_inflow_sum_1',
-                T.dot(staf_matrix.T, T.ones((num_processes, 1))))
+                T.sum(staf_matrix, axis=0))
 
             all_inflow_sum_1 = pm.Deterministic(
                 'all_inflow_sum_1',
-                internal_inflow_sum_1 + input_sums)
+                internal_inflow_sum_1[:, None] + input_sums[:, None])
 
             staf_eqs_1 = pm.Deterministic(
-                'staf_eqs_1', all_inflow_sum_1 * tc_matrix)
+                'staf_eqs_1', all_inflow_sum_1[:, None] * tc_matrix)
 
             all_but_one_outflow_sum = pm.Deterministic(
                 'all_but_one_outflow_sum',
@@ -147,19 +148,20 @@ class UmisMathModel():
 
             internal_inflow_sum_2 = pm.Deterministic(
                 'internal_inflow_sum_2',
-                T.dot(
-                    staf_eqs_1.T,
-                    T.ones((num_processes, 1))))
+                T.sum(
+                    staf_eqs_1,
+                    axis=0))
 
             staf_eqs_2 = pm.Deterministic(
                 'staf_eqs_2',
-                internal_inflow_sum_2 - all_but_one_outflow_sum)
+                internal_inflow_sum_2[:, None]
+                - all_but_one_outflow_sum)
 
             if len(normal_staf_means > 0):
                 normal_staf_obs_eqs = pm.Deterministic(
                     'normal_staf_obs_eqs',
                     T.tensordot(
-                        normal_staf_obs_matrix, staf_matrix))
+                        normal_staf_obs_matrix, staf_eqs_2))
 
                 pm.Normal(
                     'normal_staf_observations',
@@ -171,14 +173,14 @@ class UmisMathModel():
                 lognormal_staf_obs = pm.Deterministic(
                     'lognormal_staf_obs_eqs',
                     T.tensordot(
-                        lognormal_staf_matrix, staf_matrix))
+                        lognormal_staf_matrix, staf_eqs_2))
 
                 pm.Lognormal(
                     'lognormal_staf_observations',
                     mu=np.log(lognormal_staf_obs),
                     sd=lognormal_staf_sds,
                     observed=lognormal_staf_means)
-
+                    
     def get_inflow_inds(self, inflow: Flow):
         """ Gets the process index of the destination of the inflow """
         dest_id = inflow.destination.diagram_id
@@ -327,10 +329,7 @@ class UmisMathModel():
                 input_matrix = T.set_subtensor(
                     input_matrix[process_index, i], input_rv)
 
-        # matrix of ones to sum inputs for an internal process
-        ones_matrix = T.ones((input_matrix_width, 1))
-
-        return input_matrix, ones_matrix
+        return input_matrix
 
     def __create_input_priors(self, external_inflows: Set[Flow]):
         """
@@ -936,6 +935,8 @@ class UmisMathModel():
 
         tc_matrix = T.zeros((num_of_processes, num_of_processes))
 
+        np_matrix = np.zeros((num_of_processes, num_of_processes))
+
         for process_id, math_process in self.__id_math_process_dict.items():
             tc_observation = None
             if isinstance(math_process, MathTransformationProcess):
@@ -958,6 +959,8 @@ class UmisMathModel():
 
             tc_matrix = T.set_subtensor(
                 tc_matrix[[origin_ind], dest_inds], dest_rv)
+
+            np_matrix[[origin_ind], dest_inds] = dest_inds
 
         return tc_matrix
 
@@ -989,18 +992,16 @@ class UmisMathModel():
 class TransformationCoefficient():
     """
     TC for a transformation process with storage, modelled as normally
-    distributed.
+    distributed. TC is the proportion going to storage
 
     Attributes
     ------------------
-    process_id (str): Id of the process the TC is for
     mean (np.float): Expected value of TC
     sd (np.float): Standard deviation of TC
     """
 
     def __init__(
             self,
-            process_id: str,
             mean: float,
             lower_uncertainty: float,
             upper_uncertainty: float):
@@ -1010,17 +1011,13 @@ class TransformationCoefficient():
 
         Args
         -----------
-        process_id (str): Id of the process the TC is for
         mean (float): Expected value of TC
         lower_uncertainty (float):  Lower uncertainty value of TC
         upper_uncertainty (float): Upper uncertainty value of TC
         """
-        assert isinstance(process_id, str)
         assert isinstance(mean, float)
         assert isinstance(lower_uncertainty, float)
         assert isinstance(upper_uncertainty, float)
-
-        self.process_id = process_id
 
         def logit(x):
             return -np.log(1/x - 1)
@@ -1303,8 +1300,7 @@ class MathTransformationProcess(MathProcess):
                         "Must supply either both mean and standard deviation" +
                         " or no tranfer coefficient")
 
-                other_process_id = self.__get_other_process_id(
-                    transform_coeff.process_id)
+                storage_id, outflow_id = self.__separate_ids()
 
                 normal_rv = pm.Normal(
                     "P_{}".format(
@@ -1316,7 +1312,7 @@ class MathTransformationProcess(MathProcess):
                 coefficient_1 = T.exp(normal_rv) / (1 + T.exp(normal_rv))
 
                 random_variable = T.stack([coefficient_1, 1-coefficient_1])
-                process_ids = [transform_coeff.process_id, other_process_id]
+                process_ids = [storage_id, outflow_id]
                 return process_ids, random_variable
 
         else:
@@ -1335,7 +1331,7 @@ class MathTransformationProcess(MathProcess):
         """
         return transfer_coeff_rv
 
-    def __get_other_process_id(self, tc_process_id: str):
+    def __separate_ids(self):
         """
         Checks if the process id of the transfer coefficient is an outflow of
         this process and if so returns the process id of the other outflow
@@ -1344,15 +1340,19 @@ class MathTransformationProcess(MathProcess):
         --------------
         tc_process_id (str): Process id of transfer coefficient
         """
+        (outflow_1, outflow_2) = self.outflow_process_ids
 
-        if not self.outflow_process_ids.__contains__(tc_process_id):
-            raise ValueError("Process {} does not ".format(self.process_id) +
-                             "contain outflow for given transfer coefficient")
-
-        for outflow_id in self.outflow_process_ids:
-            if outflow_id != tc_process_id:
-                return outflow_id
-        raise ValueError("All outflows had process id of transfer coefficient")
+        if outflow_1.__contains__("STORAGE"):
+            storage_id = outflow_1
+            outflow_id = outflow_2
+            return storage_id, outflow_id
+        else:
+            if self.outflow_process_ids[1].__contains__("STORAGE"):
+                storage_id = outflow_1
+                outflow_id = outflow_2
+                return storage_id, outflow_id
+            else:
+                raise ValueError("No outflow is a storage process")
 
 
 class MathStorageProcess(MathProcess):
