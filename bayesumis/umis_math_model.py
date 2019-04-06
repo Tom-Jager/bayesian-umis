@@ -116,7 +116,7 @@ class UmisMathModel():
 
             tc_matrix = pm.Deterministic('TCs', tc_matrix)
 
-            input_matrix, ones_matrix = self.__create_input_matrix()
+            # input_matrix, ones_matrix = self.__create_input_matrix()
 
             input_matrix = pm.Deterministic('Inputs', input_matrix)
 
