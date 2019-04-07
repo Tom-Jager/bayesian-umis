@@ -80,7 +80,7 @@ class UmisMathModel():
         """
         self.reference_material = reference_material
         self.reference_time = reference_time
-        print("Version Fri 18:22")
+        print("Version Sun 16:28")
         # Assigns a new index to each process
         self.__index_counter = 0
 
@@ -152,9 +152,12 @@ class UmisMathModel():
                     staf_eqs_1,
                     axis=0))
 
+            all_internal_inflow_2 = internal_inflow_sum_2[:, None] \
+                + input_sums[:, None]
+
             staf_eqs_2 = pm.Deterministic(
                 'staf_eqs_2',
-                internal_inflow_sum_2[:, None]
+                all_internal_inflow_2[:, None]
                 - all_but_one_outflow_sum)
 
             if len(normal_staf_means > 0):
@@ -165,9 +168,9 @@ class UmisMathModel():
 
                 pm.Normal(
                     'normal_staf_observations',
-                    mu=normal_staf_obs_eqs,
-                    sd=normal_staf_sds,
-                    observed=normal_staf_means)
+                    mu=normal_staf_obs_eqs[:, None],
+                    sd=normal_staf_sds[:, None],
+                    observed=normal_staf_means[:, None])
 
             if len(lognormal_staf_means > 0):
                 lognormal_staf_obs = pm.Deterministic(
@@ -180,7 +183,7 @@ class UmisMathModel():
                     mu=np.log(lognormal_staf_obs),
                     sd=lognormal_staf_sds,
                     observed=lognormal_staf_means)
-                    
+
     def get_inflow_inds(self, inflow: Flow):
         """ Gets the process index of the destination of the inflow """
         dest_id = inflow.destination.diagram_id
@@ -615,8 +618,8 @@ class UmisMathModel():
         num_procs = self.__id_math_process_dict.keys().__len__()
 
         observed_staf_matrix = np.zeros((num_obs, num_procs, num_procs))
-        means_vector = np.zeros((num_obs, 1))
-        sds_vector = np.zeros((num_obs, 1))
+        means_vector = np.zeros(num_obs)
+        sds_vector = np.zeros(num_obs)
 
         for i, observation in enumerate(staf_obs):
             origin_id = observation.origin_id
@@ -860,7 +863,7 @@ class UmisMathModel():
                                 uncertainty,
                                 normal_staf_obs,
                                 lognormal_staf_obs)
-                        
+
                         staf_prior = StafPrior(
                             origin_id,
                             dest_id,
@@ -1347,7 +1350,7 @@ class MathTransformationProcess(MathProcess):
             outflow_id = outflow_2
             return storage_id, outflow_id
         else:
-            if self.outflow_process_ids[1].__contains__("STORAGE"):
+            if outflow_2.__contains__("STORAGE"):
                 storage_id = outflow_1
                 outflow_id = outflow_2
                 return storage_id, outflow_id

@@ -174,61 +174,71 @@ def get_umis_diagram_asymmetrical():
         reference,
         {ref_material: value_100},
         p1_out,
-        p2)
+        p2,
+        'f1')
 
     f2 = test_db.get_flow(
         reference,
         {ref_material: value_70},
         p2,
-        p3)
+        p3,
+        'f2')
 
     f3 = test_db.get_flow(
         reference,
         {ref_material: value_unknown},
         p2,
-        p4)
+        p4,
+        'f3')
 
     f4 = test_db.get_flow(
         reference,
         {ref_material: value_70},
         p3,
-        p5)
+        p5,
+        'f4')
 
     f5 = test_db.get_flow(
         reference,
-        {ref_material: value_30},
+        {ref_material: value_unknown},
         p4,
-        p6)
+        p6,
+        'f5')
 
     f6 = test_db.get_flow(
         reference,
         {ref_material: value_30},
         p5,
-        p7)
+        p7,
+        'f6')
 
     f7 = test_db.get_flow(
         reference,
         {ref_material: value_unknown},
         p6,
-        p8)
+        p8,
+        'f7')
 
     f8 = test_db.get_flow(
         reference,
         {ref_material: value_30},
         p6,
-        p9_out)
+        p9_out,
+        'f8')
 
     f9 = test_db.get_flow(
         reference,
         {ref_material: value_30},
         p7,
-        p10_out)
+        p10_out,
+        'f9')
 
     f10 = test_db.get_flow(
         reference,
         {ref_material: value_unknown},
         p8,
-        p11_out)
+        p11_out,
+        'f10')
 
     external_inflows = {f1}
     internal_flows = {f2, f3, f4, f5, f6, f7}
@@ -547,10 +557,12 @@ def get_umis_diagram_stocked_with_tcs():
     external_outflows = {f4, f5}
     stocks = {s1}
 
-    transformation_coefficient_obs = {
-        p21.diagram_id: p2_dcs,
-        p31.diagram_id: s1_tc}
-    print("Designed 12:48")
+    # transformation_coefficient_obs = {
+    #     p21.diagram_id: p2_dcs,
+    #     p31.diagram_id: s1_tc}
+
+    transformation_coefficient_obs = dict()
+    print("Designed Sat 17:55")
     return (
         external_inflows,
         internal_flows,
