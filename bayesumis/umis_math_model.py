@@ -15,7 +15,7 @@ from typing import Dict, List, Set, Tuple
 import numpy as np
 import pymc3 as pm
 import theano.tensor as T
-# from theano.tensor.nlinalg import matrix_inverse
+from theano.tensor.nlinalg import matrix_inverse
 
 from ..bayesumis.umis_data_models import (
     Flow,
@@ -80,7 +80,7 @@ class UmisMathModel():
         """
         self.reference_material = reference_material
         self.reference_time = reference_time
-        print("Version Sun 16:28")
+        print("Version Tues 14:04")
         # Assigns a new index to each process
         self.__index_counter = 0
 
@@ -108,12 +108,9 @@ class UmisMathModel():
         lognormal_staf_matrix, lognormal_staf_means, lognormal_staf_sds = \
             self.__create_staf_obs_matrices(lognormal_staf_obs)
 
+        # Ricks Model
         with pm.Model() as self.pm_model:
             num_processes = len(self.__id_math_process_dict.keys())
-
-            staf_matrix = self.__create_staf_priors_matrix(staf_priors)
-
-            staf_matrix = pm.Deterministic('staf_matrix', staf_matrix)
 
             tc_matrix = self.__create_transfer_coefficient_matrix(
                 transformation_coeff_obs,
@@ -125,40 +122,81 @@ class UmisMathModel():
 
             input_matrix = pm.Deterministic('Inputs', input_matrix)
 
-            input_sums = pm.Deterministic(
-                'Input Sums', T.sum(input_matrix, axis=1))
+            input_sums = T.sum(input_matrix, axis=1)
 
-            internal_inflow_sum_1 = pm.Deterministic(
-                'internal_inflow_sum_1',
-                T.sum(staf_matrix, axis=0))
-
-            all_inflow_sum_1 = pm.Deterministic(
-                'all_inflow_sum_1',
-                internal_inflow_sum_1[:, None] + input_sums[:, None])
-
-            staf_eqs_1 = pm.Deterministic(
-                'staf_eqs_1', all_inflow_sum_1[:, None] * tc_matrix)
-
-            all_but_one_outflow_sum = pm.Deterministic(
-                'all_but_one_outflow_sum',
-                T.dot(
-                    staf_eqs_1,
-                    T.ones((num_processes, num_processes))
-                    - T.eye(num_processes)))
-
-            internal_inflow_sum_2 = pm.Deterministic(
-                'internal_inflow_sum_2',
-                T.sum(
-                    staf_eqs_1,
-                    axis=0))
-
-            all_internal_inflow_2 = internal_inflow_sum_2[:, None] \
-                + input_sums[:, None]
+            process_throughputs = T.dot(
+                matrix_inverse(T.eye(num_processes) - tc_matrix.T),
+                input_sums[:, None])
 
             staf_eqs_2 = pm.Deterministic(
                 'staf_eqs_2',
-                all_internal_inflow_2[:, None]
-                - all_but_one_outflow_sum)
+                tc_matrix * process_throughputs[:, None])
+
+        # Toms Model1
+        # with pm.Model() as self.pm_model:
+        #     num_processes = len(self.__id_math_process_dict.keys())
+
+        #     staf_matrix = self.__create_staf_priors_matrix(staf_priors)
+
+        #     tc_matrix = self.__create_transfer_coefficient_matrix(
+        #         transformation_coeff_obs,
+        #         distribution_coeff_obs)
+
+        #     tc_matrix = pm.Deterministic('TCs', tc_matrix)
+
+        #     input_matrix = self.__create_input_matrix()
+
+        #     input_matrix = pm.Deterministic('Inputs', input_matrix)
+
+        #     input_sums = T.sum(input_matrix, axis=1)
+
+        #     internal_inflow_sum_1 = T.sum(staf_matrix, axis=0)
+
+        #     all_inflow_sum_1 = internal_inflow_sum_1[:, None] \
+        #         + input_sums[:, None]
+
+        #     staf_eqs_2 = pm.Deterministic(
+        #         'staf_eqs_2', all_inflow_sum_1[:, None] * tc_matrix)
+
+        # Toms Model2
+        # with pm.Model() as self.pm_model:
+        #     num_processes = len(self.__id_math_process_dict.keys())
+
+        #     staf_matrix = self.__create_staf_priors_matrix(staf_priors)
+
+        #     tc_matrix = self.__create_transfer_coefficient_matrix(
+        #         transformation_coeff_obs,
+        #         distribution_coeff_obs)
+
+        #     tc_matrix = pm.Deterministic('TCs', tc_matrix)
+
+        #     input_matrix = self.__create_input_matrix()
+
+        #     input_matrix = pm.Deterministic('Inputs', input_matrix)
+
+        #     input_sums = T.sum(input_matrix, axis=1)
+
+        #     internal_inflow_sum_1 = T.sum(staf_matrix, axis=0)
+
+        #     all_inflow_sum_1 = internal_inflow_sum_1[:, None] \
+        #         + input_sums[:, None]
+
+        #     staf_eqs_1 = all_inflow_sum_1[:, None] * tc_matrix
+
+        #     all_but_one_outflow_sum = T.dot(
+        #             staf_eqs_1,
+        #             T.ones((num_processes, num_processes))
+        #             - T.eye(num_processes))
+
+        #     internal_inflow_sum_2 = T.sum(staf_eqs_1, axis=0)
+
+        #     all_internal_inflow_2 = internal_inflow_sum_2[:, None] \
+        #         + input_sums[:, None]
+
+        #     staf_eqs_2 = pm.Deterministic(
+        #         'staf_eqs_2',
+        #         all_internal_inflow_2[:, None]
+        #         - all_but_one_outflow_sum)
 
             if len(normal_staf_means > 0):
                 normal_staf_obs_eqs = pm.Deterministic(
@@ -173,16 +211,16 @@ class UmisMathModel():
                     observed=normal_staf_means[:, None])
 
             if len(lognormal_staf_means > 0):
-                lognormal_staf_obs = pm.Deterministic(
+                lognormal_staf_obs_eqs = pm.Deterministic(
                     'lognormal_staf_obs_eqs',
                     T.tensordot(
                         lognormal_staf_matrix, staf_eqs_2))
 
                 pm.Lognormal(
                     'lognormal_staf_observations',
-                    mu=np.log(lognormal_staf_obs),
-                    sd=lognormal_staf_sds,
-                    observed=lognormal_staf_means)
+                    mu=lognormal_staf_obs_eqs[:, None],
+                    sd=lognormal_staf_sds[:, None],
+                    observed=np.exp(lognormal_staf_means[:, None]))
 
     def get_inflow_inds(self, inflow: Flow):
         """ Gets the process index of the destination of the inflow """
