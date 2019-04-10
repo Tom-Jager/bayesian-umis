@@ -4,7 +4,7 @@ mathematical models
 """
 
 import sys
-from typing import Optional, Dict
+from typing import Dict
 
 
 class Uncertainty():
@@ -246,43 +246,66 @@ class Timeframe():
                 self.end_time == timeframe_b.end_time)
 
 
-class Reference():
+class DiagramReference():
     """
-    Class representing the attributes a stock or flow is in reference to
+    Class representing the overall attributes a Umis Diagram is in reference to
 
     Attributes
     ----------
 
-    origin_space (Space): Location start of stock or flow is in reference to
-    destination_space (Space): Location end of stock or flow is in reference to
-    time (Timeframe): Year stock or flow is in reference to
-    material (Material): Material stock or flow is in reference to
+    space (Space): Location umis diagram is in reference to
+    time (Timeframe): Year umis diagram is in reference to
+    material (Material): Material umis_diagram is in reference to
     """
 
     def __init__(
             self,
-            origin_space: Space,
-            destination_space: Space,
+            space: Space = None,
+            time: Timeframe = None,
+            material: Material = None):
+        """
+        Args
+        ----------
+
+        space (Space): Location umis_diagram is in
+            reference to
+        time (Timeframe): Year umis_diagram is in reference to
+        material (Material): Material umis_diagram is in reference to
+        """
+        assert isinstance(space, Space)
+        assert isinstance(time, Timeframe)
+        assert isinstance(material, Material)
+
+        self.space = space
+        self.time = time
+        self.material = material
+
+
+class StafReference():
+    """
+    Class representing the overall attributes a staf is in reference to
+
+    Attributes
+    ----------
+
+    time (Timeframe): Year staf is in reference to
+    material (Material): Material staf is in reference to
+    """
+
+    def __init__(
+            self,
             time: Timeframe,
             material: Material):
         """
         Args
         ----------
 
-        origin_space (Space): Location start of stock or flow is in reference
-            to
-        destination_space (Space): Location end of stock or flow is in
-            reference to
-        time (Timeframe): Year stock or flow is in reference to
-        material (Material): Material stock or flow is in reference to
+        time (Timeframe): Year staf is in reference to
+        material (Material): Material staf is in reference to
         """
-        assert isinstance(origin_space, Space)
-        assert isinstance(destination_space, Space)
         assert isinstance(time, Timeframe)
         assert isinstance(material, Material)
 
-        self.origin_space = origin_space
-        self.destination_space = destination_space
         self.time = time
         self.material = material
 
@@ -339,14 +362,14 @@ class Staf():
     ----------
     stafdb_id (str): STAFDB id for the stock or flow
     name (str): Name of the stock or flow
-    reference (Reference): Attributes the stock or flow is about
+    staf_reference (StafReference): Attributes the stock or flow is about
     """
 
     def __init__(
             self,
             stafdb_id: str,
             name: str,
-            reference: Reference,
+            staf_reference: StafReference,
             material_values_dict: Dict[Material, Value]):
 
         """
@@ -354,17 +377,17 @@ class Staf():
         ----
         stafdb_id (str): STAFDB id for the stock or flow
         name (str): Name of the stock or flow
-        reference (Reference): Attributes the stock or flow is about
+        staf_reference (StafReference): Attributes the stock or flow is about
         material_values_dict (dict(Material, Value)): Amount of stock for a
             given material
         """
         assert isinstance(stafdb_id, str)
         assert isinstance(name, str)
-        assert isinstance(reference, Reference)
+        assert isinstance(staf_reference, StafReference)
 
         self.stafdb_id = stafdb_id
         self.name = name
-        self.reference = reference
+        self.staf_reference = staf_reference
 
         for key, value in material_values_dict.items():
             assert isinstance(key, Material)
@@ -390,6 +413,9 @@ class Staf():
         assert isinstance(value, Value) or value is None
         return value
 
+    def __hash__(self):
+        return self.stafdb_id.__hash__()    
+
 
 class Stock(Staf):
     """
@@ -399,53 +425,48 @@ class Stock(Staf):
     ----------
     stafdb_id (str): STAFDB id for the stock or flow
     name (str): Name of the stock or flow
-    reference (Reference): Attributes the stock or flow is about
+    staf_reference (StafReference): Attributes the stock or flow is about
     material_values_dict (dict(Material, Value)): Amount of stock for a given
         material
 
     Attributes
     ----------
+    stock_process (UmisProcess): Process that is storing the stock
     stock_type (str): Whether the stock represents net or total stock
-    process_stafdb_id (str): Id of the process the stock is storing material
-        from
     """
 
     def __init__(
             self,
             stafdb_id: str,
             name: str,
-            reference: Reference,
+            staf_reference: StafReference,
             material_values_dict: Dict[Material, Value],
-            stock_type: str,
-            process_stafdb_id: str):
+            stock_process: 'UmisProcess',
+            stock_type: str):
         """
         Args
         ----
         stafdb_id (str): STAFDB id for the stock or flow
-        reference (Reference): Attributes the stock or flow is about
         name (str): Name of the stock or flow
-        stock_type (str): Whether the stock represents net or total stock
-        process_stafdb_id (str): Id of the process the stock is storing
-            material from
+        staf_reference (StafReference): Attributes the stock or flow is about
         material_values_dict (dict(Material, Value)): Amount of stock for a
             given material
+        stock_process (UmisProcess): Process the stock is storing
+            material from
+        stock_type (str): Whether the stock represents net or total stock
         """
 
-        super(
-            Stock,
-            self).__init__(stafdb_id, name, reference, material_values_dict)
+        super(Stock, self).__init__(
+            stafdb_id, name, staf_reference, material_values_dict)
 
         assert stock_type == 'Net' or stock_type == 'Total'
         self.stock_type = stock_type
 
-        assert isinstance(process_stafdb_id, str)
-        self.process_stafdb_id = process_stafdb_id
+        assert isinstance(stock_process, UmisProcess)
+        self.stock_process = stock_process
 
-    def get_stock_process_diagram_id(self):
-        """
-        Returns the process this stock is on's diagram id
-        """
-        return UmisProcess.create_diagram_id(self.process_stafdb_id)
+    def __hash__(self):
+        return super().__hash__()
 
 
 class UmisProcess():
@@ -459,7 +480,7 @@ class UmisProcess():
     stafdb_id (str): Unique ID for process in STAFDB
     code (str): Unique code for process in STAFDB
     name (str): Process name
-    space (Space): Reference space for process
+    reference_space (Space): Reference space for process
     is_separator (bool): True if process has indentical disaggregation
     parent_name (str): Name of parent process
     process_type (str): Type of process, either Transformation or Distribution
@@ -513,19 +534,6 @@ class UmisProcess():
 
         self.diagram_id = self.create_diagram_id(stafdb_id, reference_space)
 
-    def add_stock(self, stock: Stock):
-        """
-        Add a stock to the process representing a storage process
-
-        Args
-        ----
-
-        stock (Stock): Stock to be added
-        """
-
-        assert isinstance(stock, Stock)
-        self.__stock_dict[stock.stock_type] = stock
-
     @staticmethod
     def create_diagram_id(process_stafdb_id: str, space: Space):
         """
@@ -537,27 +545,6 @@ class UmisProcess():
         space (Space): Space the process is in
         """
         return "{}_{}".format(process_stafdb_id, space.stafdb_id)
-
-    def get_stock(self, stock_type: str):
-        """
-        Get stock of given type from process
-
-        Args
-        ----
-        stock_type (str): Must be either 'Net' or 'Total'
-
-        Returns
-        -------
-        stock (Stock): Stock in storage process if it exists
-        None: Returns None if the stock of that type does not exist
-        """
-        if stock_type != 'Net' and stock_type != 'Total':
-            raise ValueError("Incorrect stock type submitted, expected 'Net'" +
-                             "or 'Total', recieved {}".format(stock_type))
-
-        stock = self.__stock_dict.get(stock_type)
-        assert isinstance(stock, Stock) or stock is None
-        return stock
 
     def __eq__(self, process_b):
         return self.diagram_id == process_b.diagram_id
@@ -574,7 +561,7 @@ class Flow(Staf):
     ----------
     stafdb_id (str): STAFDB id for the stock or flow
     name (str): Name of the stock or flow
-    reference (Reference): Attributes the stock or flow is about
+    staf_reference (StafReference): Attributes the stock or flow is about
     material_values_dict (dict(Material, Value)): Amount of stock for a
             given material
 
@@ -588,7 +575,7 @@ class Flow(Staf):
                 self,
                 stafdb_id: str,
                 name: str,
-                reference: Reference,
+                staf_reference: StafReference,
                 material_values_dict: Dict[Material, Value],
                 origin: UmisProcess,
                 destination: UmisProcess):
@@ -599,7 +586,8 @@ class Flow(Staf):
         ----
         stafdb_id: ID for the flow in STAFDB
         name: Name of flow
-        reference (Reference): Reference material, space and time for flow
+        staf_reference (StafReference): Reference material and time for
+            flow
         material_values_dict (dict(Material, Value)): Amount of stock for a
             given material
         origin: Process flow starts at
@@ -617,10 +605,9 @@ class Flow(Staf):
                     origin.process_type,
                     destination.process_type))
 
-        super(
-            Flow,
-            self).__init__(stafdb_id, name, reference, material_values_dict)
-        
+        super(Flow, self).__init__(
+            stafdb_id, name, staf_reference, material_values_dict)
+
         assert isinstance(origin, UmisProcess)
         assert isinstance(destination, UmisProcess)
 
@@ -632,7 +619,7 @@ class Flow(Staf):
         return flow_string
 
     def __hash__(self):
-        return self.stafdb_id.__hash__()
+        return super().__hash__()
 
     def __eq__(self, flow_b):
         return self.stafdb_id == flow_b.stafdb_id
