@@ -272,9 +272,9 @@ class DiagramReference():
         time (Timeframe): Year umis_diagram is in reference to
         material (Material): Material umis_diagram is in reference to
         """
-        assert isinstance(space, Space)
-        assert isinstance(time, Timeframe)
-        assert isinstance(material, Material)
+        assert not space or isinstance(space, Space)
+        assert not time or isinstance(time, Timeframe)
+        assert not material or isinstance(material, Material)
 
         self.space = space
         self.time = time

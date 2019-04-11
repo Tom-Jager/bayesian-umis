@@ -24,8 +24,8 @@ class UmisDiagram():
     external_outflows (set(Flow)): Set of flows from processes to outside
         the diagram
 
-    process_outflows_dict(dict(str, Process)): Mapping of process to its
-        outflows
+    process_stafs_dict(dict(str, UmisProcess)): Mapping of process to its
+        outflows and stocks
 
     reference (Reference): Attributes that the stocks and flows are
         in reference to    
@@ -97,19 +97,19 @@ class UmisDiagram():
             self.__check_flow_type(flow)
 
             origin_process = flow.origin
-            if origin_process.diagram_id in self.process_outflows_dict:
+            if origin_process in self.__process_stafs_dict:
                 raise ValueError(
                     "Origin process of external inflow ({}) is in diagram"
                     .format(flow))
 
-            if self.external_inflows.__contains__(flow):
+            if self.__external_inflows.__contains__(flow):
                 raise ValueError(
                     "External inflow {} has already".format(flow) +
                     " been input")
 
             dest_process = flow.destination
-            if dest_process.diagram_id not in self.process_outflows_dict:
-                self.process_outflows_dict[dest_process.diagram_id] = set()
+            if dest_process not in self.__process_stafs_dict:
+                self.__process_stafs_dict[dest_process] = set()
 
             self.__external_inflows.add(flow)
 
@@ -128,7 +128,7 @@ class UmisDiagram():
 
             dest_process = flow.destination
 
-            if dest_process in self.process_outflows_dict:
+            if dest_process in self.__process_stafs_dict:
                 raise ValueError(
                     "Destination process of external outflow ({}) is in"
                     .format(flow)) + "diagram"
@@ -178,7 +178,7 @@ class UmisDiagram():
             self.__update_diagram_reference(
                 stock.staf_reference.time,
                 stock.staf_reference.material,
-                stock.process.reference_space)
+                stock.stock_process.reference_space)
 
     def __check_flow_type(self, flow):
         """
@@ -188,26 +188,6 @@ class UmisDiagram():
             raise TypeError(
                 "Tried to add {}, when should be adding a Flow"
                 .format(flow))
-
-    def __get_process_outflows_dict(self):
-        """
-        Returns process outflows dict
-        """
-        return self.__process_stafs_dict
-
-    def __get_external_inflows(self):
-        """
-        Returns external inflows
-        """
-
-        return self.__external_inflows
-
-    def __get_external_outflows(self):
-        """
-        Returns external inflows
-        """
-
-        return self.__external_outflows
 
     def __update_diagram_reference(self, *args, **kwargs):
         """
@@ -219,6 +199,26 @@ class UmisDiagram():
         new_reference (Reference): New incoming reference
         """
         pass
+
+    def get_process_stafs_dict(self):
+        """
+        Returns process outflows dict
+        """
+        return self.__process_stafs_dict
+
+    def get_external_inflows(self):
+        """
+        Returns external inflows
+        """
+
+        return self.__external_inflows
+
+    def get_external_outflows(self):
+        """
+        Returns external inflows
+        """
+
+        return self.__external_outflows
 
 
 if __name__ == '__main__':

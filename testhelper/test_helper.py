@@ -6,9 +6,9 @@ from typing import Dict
 from ..bayesumis.umis_data_models import (
     Flow,
     Material,
-    Reference,
     Space,
     Stock,
+    StafReference,
     Timeframe,
     UmisProcess,
     Uncertainty,
@@ -34,7 +34,7 @@ class DbStub():
 
     def get_flow(
             self,
-            reference: Reference,
+            reference: StafReference,
             material_val: Dict[Material, Value],
             origin: UmisProcess,
             destination: UmisProcess,
@@ -55,9 +55,9 @@ class DbStub():
 
     def get_stock(
             self,
-            reference: Reference,
+            reference: StafReference,
             material_val: Dict[Material, Value],
-            process_stafdb_id: str,
+            stock_process: UmisProcess,
             stock_type: str,
             name_prefix: str = ''):
 
@@ -69,8 +69,8 @@ class DbStub():
             name,
             reference,
             material_val,
-            stock_type,
-            process_stafdb_id)
+            stock_process,
+            stock_type)
 
         self._stock_id_c += 1
         print("|{}|".format(stafdb_id))

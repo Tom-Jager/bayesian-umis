@@ -43,7 +43,7 @@ class UmisMathModel():
 
     def __init__(
             self,
-            process_outflows_dict: Dict[UmisProcess, Set[Staf]],
+            process_stafs_dict: Dict[UmisProcess, Set[Staf]],
             external_inflows: Set[Flow],
             external_outflows: Set[Flow],
             reference_material: Material,
@@ -58,7 +58,7 @@ class UmisMathModel():
         umis_processes (Set[UmisProcess]): Set of the UmisProcesses in the
             model
 
-        process_outflows_dict (dict(str, set(Flow)): Dictionary mapping
+        process_stafs_dict (dict(str, set(Flow)): Dictionary mapping
             process_id to the process' outflows
 
         external_inflows (set(flow)): The inflows from outside the model to a
@@ -67,7 +67,7 @@ class UmisMathModel():
         external_outflows (set(flow)): The outflows from inside the model to a
             process outside the model
 
-        tranformation_coeff_obs (dict(str, TransformationCoefficient)): Maps a
+        transformation_coeff_obs (dict(str, TransformationCoefficient)): Maps a
             transformation process id to its transfer coefficient observation
 
         distribution_coeff_obs (dict(str, DistributionCoefficient)): Maps a
@@ -80,7 +80,7 @@ class UmisMathModel():
         """
         self.reference_material = reference_material
         self.reference_time = reference_time
-        print("Version Tues 14:04")
+        print("Version Wed 16:51")
         # Assigns a new index to each process
         self.__index_counter = 0
 
@@ -88,14 +88,14 @@ class UmisMathModel():
         """ Maps a math process id to its math process """
 
         self.__create_math_processes(
-            process_outflows_dict,
+            process_stafs_dict,
             external_outflows)
 
         self.__create_input_priors(external_inflows)
 
         staf_priors, normal_staf_obs, lognormal_staf_obs = \
             self.__create_staf_obs_and_priors(
-                process_outflows_dict,
+                process_stafs_dict,
                 external_outflows)
 
         normal_staf_obs_matrix, normal_staf_means, normal_staf_sds = \
@@ -202,9 +202,9 @@ class UmisMathModel():
 
                 pm.Normal(
                     'normal_staf_observations',
-                    mu=normal_staf_means[:, None],
+                    mu=normal_staf_obs_eqs[:, None],
                     sd=normal_staf_sds[:, None],
-                    observed=normal_staf_obs_eqs[:, None])
+                    observed=normal_staf_means[:, None])
 
             if len(lognormal_staf_means > 0):
                 lognormal_staf_obs_eqs = pm.Deterministic(
@@ -214,9 +214,9 @@ class UmisMathModel():
 
                 pm.Lognormal(
                     'lognormal_staf_observations',
-                    mu=np.log(lognormal_staf_means[:, None]),
+                    mu=np.log(lognormal_staf_obs_eqs[:, None]),
                     sd=lognormal_staf_sds[:, None],
-                    observed=lognormal_staf_obs_eqs[:, None])
+                    observed=lognormal_staf_means[:, None])
 
     def get_inflow_inds(self, inflow: Flow):
         """ Gets the process index of the destination of the inflow """
@@ -277,8 +277,7 @@ class UmisMathModel():
 
     def get_stock_inds(self, stock: Stock):
         """ Gets the indices of a given stock """
-        origin_process_id = UmisProcess.create_diagram_id(
-            stock.process_stafdb_id, stock.reference.origin_space)
+        origin_process_id = stock.stock_process.diagram_id
         origin_math_process = self.__id_math_process_dict.get(
             origin_process_id)
 
@@ -383,7 +382,7 @@ class UmisMathModel():
         for flow in external_inflows:
 
             flow: Flow = flow
-            if flow.reference.time == self.reference_time:
+            if flow.staf_reference.time == self.reference_time:
 
                 value = flow.get_value(self.reference_material)
 
@@ -445,7 +444,7 @@ class UmisMathModel():
 
     def __create_math_processes(
             self,
-            process_outflows_dict: Dict[str, Set[Staf]],
+            process_stafs_dict: Dict[str, Set[Staf]],
             external_outflows: Set[Flow]):
         """
         Generates the math models of processes from stocks and flows
@@ -455,33 +454,33 @@ class UmisMathModel():
         umis_processes (Set[UmisProcess]): Set of the UmisProcesses in the
             model
 
-        process_outflows_dict (dict(str, set(Flow)): Dictionary mapping
+        process_stafs_dict (dict(str, set(Flow)): Dictionary mapping
             process_id to the process' outflows
 
         external_outflows (set(flow)): The outflows from inside the model to a
             process outside the model
         """
 
-        self.__create_math_processes_from_internal_flows(process_outflows_dict)
+        self.__create_math_processes_from_internal_flows(process_stafs_dict)
         self.__create_math_processes_from_external_outflows(external_outflows)
 
     def __create_math_processes_from_internal_flows(
             self,
-            process_outflows_dict: Dict[str, Set[Flow]]):
+            process_stafs_dict: Dict[str, Set[Staf]]):
         """
         Take the flows and creates internal_flows from them
 
         Args
         ------------
-        process_outflows_dict (dict(str, set(Flow))): Maps a process to its
+        process_stafs_dict (dict(str, set(Flow))): Maps a process to its
             outflows
         """
 
-        for origin_id, outflows in process_outflows_dict.items():
+        for _, stafs in process_stafs_dict.items():
 
-            for staf in outflows:
+            for staf in stafs:
                 # Checks flow is about correct reference time
-                if staf.reference.time == self.reference_time:
+                if staf.staf_reference.time == self.reference_time:
 
                     value = staf.get_value(self.reference_material)
                     # Checks flow has an entry for the reference material
@@ -516,7 +515,7 @@ class UmisMathModel():
         """
         for flow in outflows:
             # Checks flow is about correct reference time
-            if flow.reference.time == self.reference_time:
+            if flow.staf_reference.time == self.reference_time:
 
                 value = flow.get_value(self.reference_material)
                 # Checks flow has an entry for the reference material
@@ -599,12 +598,21 @@ class UmisMathModel():
         if stock.stock_type == 'Net':
 
             # Check stock is about correct reference time
-            if stock.reference.time == self.reference_time:
+            if stock.staf_reference.time == self.reference_time:
 
                 value = stock.get_value(self.reference_material)
                 # Check if stock has value for reference material
                 if value:
+
                     stock_process = stock.stock_process
+
+                    if stock_process.process_type != "Transformation":
+                        raise ValueError("Stock {} must reside in"
+                                         .format(stock.stafdb_id) +
+                                         "Transformation process, instead" +
+                                         " process type was {}"
+                                         .format(stock_process))
+                                         
                     # Model as a flow to a storage process
                     origin_id = stock_process.diagram_id
 
@@ -681,7 +689,7 @@ class UmisMathModel():
 
     def __create_staf_obs_and_priors(
             self,
-            process_outflows_dict: Dict[str, Set[Staf]],
+            process_stafs_dict: Dict[str, Set[Staf]],
             external_outflows: Set[Flow]):
         """
         Store relevant observations of stock and flow values
@@ -689,7 +697,7 @@ class UmisMathModel():
         Args
         ----
 
-        process_outflows_dict (dict(str, set(Staf)): Dictionary mapping
+        process_stafs_dict (dict(str, set(Staf)): Dictionary mapping
             process_id to the process' outflows
 
         external_outflows (set(flow)): The outflows from inside the model to a
@@ -709,7 +717,7 @@ class UmisMathModel():
 
         staf_priors, normal_staf_obs, lognormal_staf_obs = \
             self.__create_staf_obs_and_priors_from_internal_stafs(
-                process_outflows_dict,
+                process_stafs_dict,
                 normal_staf_obs,
                 lognormal_staf_obs,
                 staf_priors)
@@ -734,7 +742,7 @@ class UmisMathModel():
 
         Args
         ----
-        process_outflows_dict (dict(str, set(Flow))): Maps a process to its
+        process_stafs_dict (dict(str, set(Flow))): Maps a process to its
             outflows
 
         normal_staf_obs (List[StafObservation]): List of all normally
@@ -750,7 +758,7 @@ class UmisMathModel():
         for outflow in external_outflows:
 
             # Checks flow is about correct reference time
-            if outflow.reference.time == self.reference_time:
+            if outflow.staf_reference.time == self.reference_time:
 
                 value = outflow.get_value(self.reference_material)
                 # Checks flow has an entry for the reference material
@@ -785,7 +793,7 @@ class UmisMathModel():
 
     def __create_staf_obs_and_priors_from_internal_stafs(
             self,
-            process_outflows_dict: Dict[str, Set[Staf]],
+            process_stafs_dict: Dict[str, Set[Staf]],
             normal_staf_obs: List['StafObservation'],
             lognormal_staf_obs: List['StafObservation'],
             staf_priors: List['StafPrior']):
@@ -794,7 +802,7 @@ class UmisMathModel():
 
         Args
         ----
-        process_outflows_dict (dict(str, set(Staf))): Maps a process to its
+        process_stafs_dict (dict(str, set(Staf))): Maps a process to its
             outflows
 
         normal_staf_obs (List[StafObservation]): List of all normally
@@ -807,16 +815,17 @@ class UmisMathModel():
             values
         """
 
-        for origin_id, outflows in process_outflows_dict.items():
+        for origin_process, stafs in process_stafs_dict.items():
 
-            for staf in outflows:
+            for staf in stafs:
                 # Checks flow is about correct reference time
-                if staf.reference.time == self.reference_time:
+                if staf.staf_reference.time == self.reference_time:
 
                     value = staf.get_value(self.reference_material)
                     # Checks flow has an entry for the reference material
                     if value:
-
+                        
+                        origin_id = origin_process.diagram_id
                         # TODO Unit reconciliation
                         # Would involve getting value and checking unit
                         if isinstance(staf, Flow):
@@ -995,6 +1004,8 @@ class TransformationCoefficient():
         assert isinstance(mean, float)
         assert isinstance(lower_uncertainty, float)
         assert isinstance(upper_uncertainty, float)
+
+        assert lower_uncertainty < upper_uncertainty
 
         def logit(x):
             return -np.log(1/x - 1)
@@ -1271,8 +1282,8 @@ class MathTransformationProcess(MathProcess):
 
             else:
 
-                if ((transform_coeff.sd and not transform_coeff.mean) or
-                        (transform_coeff.mean and not transform_coeff.sd)):
+                if ((transform_coeff.sd and transform_coeff.mean is None) or
+                        (transform_coeff.mean and transform_coeff.sd is None)):
                     raise ValueError(
                         "Must supply either both mean and standard deviation" +
                         " or no tranfer coefficient")
@@ -1325,8 +1336,8 @@ class MathTransformationProcess(MathProcess):
             return storage_id, outflow_id
         else:
             if outflow_2.__contains__("STORAGE"):
-                storage_id = outflow_1
-                outflow_id = outflow_2
+                storage_id = outflow_2
+                outflow_id = outflow_1
                 return storage_id, outflow_id
             else:
                 raise ValueError("No outflow is a storage process")

@@ -2,18 +2,19 @@
 import unittest
 from unittest.mock import Mock
 
-from ..bayesumis.umis_data_models import (
+from bayesumis.umis_data_models import (
     Flow,
     Material,
     UmisProcess,
-    Reference,
+    DiagramReference,
     Space,
     Stock,
     Timeframe,
     Uncertainty,
     Value
 )
-from ..bayesumis.umis_diagram import UmisDiagram
+
+from bayesumis.umis_diagram import UmisDiagram
 
 
 class TestUmisDiagram(unittest.TestCase):
