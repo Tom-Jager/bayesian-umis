@@ -369,8 +369,7 @@ class Staf():
             self,
             stafdb_id: str,
             name: str,
-            staf_reference: StafReference,
-            material_values_dict: Dict[Material, Value]):
+            staf_reference: StafReference):
 
         """
         Args
@@ -378,8 +377,6 @@ class Staf():
         stafdb_id (str): STAFDB id for the stock or flow
         name (str): Name of the stock or flow
         staf_reference (StafReference): Attributes the stock or flow is about
-        material_values_dict (dict(Material, Value)): Amount of stock for a
-            given material
         """
         assert isinstance(stafdb_id, str)
         assert isinstance(name, str)
@@ -389,32 +386,8 @@ class Staf():
         self.name = name
         self.staf_reference = staf_reference
 
-        for key, value in material_values_dict.items():
-            assert isinstance(key, Material)
-            assert isinstance(value, Value)
-
-        self.__material_values_dict = material_values_dict
-
-    def get_value(self, material: Material):
-        """
-        Get value of material stored at stock or flow
-
-        Args
-        ----
-        material (Material): Material
-
-        Returns
-        -------
-        None if material is not stored at stock or flow
-        Value of material otherwise
-        """
-        assert isinstance(material, Material)
-        value = self.__material_values_dict.get(material)
-        assert isinstance(value, Value) or value is None
-        return value
-
     def __hash__(self):
-        return self.stafdb_id.__hash__()    
+        return self.stafdb_id.__hash__()
 
 
 class Stock(Staf):
@@ -440,7 +413,7 @@ class Stock(Staf):
             stafdb_id: str,
             name: str,
             staf_reference: StafReference,
-            material_values_dict: Dict[Material, Value],
+            material_values_dict: Dict[Material, 'StockValue'],
             stock_process: 'UmisProcess',
             stock_type: str):
         """
@@ -453,20 +426,76 @@ class Stock(Staf):
             given material
         stock_process (UmisProcess): Process the stock is storing
             material from
-        stock_type (str): Whether the stock represents net or total stock
         """
 
         super(Stock, self).__init__(
             stafdb_id, name, staf_reference, material_values_dict)
 
-        assert stock_type == 'Net' or stock_type == 'Total'
-        self.stock_type = stock_type
-
         assert isinstance(stock_process, UmisProcess)
         self.stock_process = stock_process
 
+        for key, value in material_values_dict.items():
+            assert isinstance(key, Material)
+            assert isinstance(value, StockValue)
+
+        self.__material_values_dict = material_values_dict
+
+    def get_value(self, material: Material):
+        """
+        Get value of material stored in stock
+
+        Args
+        ----
+        material (Material): Material
+
+        Returns
+        -------
+        None if material is not stored in stock
+        Value of material otherwise
+        """
+        assert isinstance(material, Material)
+        value = self.__material_values_dict.get(material)
+        assert isinstance(value, StockValue) or value is None
+        return value
+
     def __hash__(self):
         return super().__hash__()
+
+
+class StockValue(Value):
+    """
+    Extends value class for stock values as it has a stock type attribute
+    
+    Attributes
+    -----------------
+    stafdb_id: Id of timeframe in Stafdb
+    quantity (float): Amount of material, if None then the amount is unknown
+    uncertainty (Uncertainty): Uncertainty around the value
+    unit (str): The unit of the material
+    """
+
+    def __init__(
+            self,
+            stafdb_id: str,
+            quantity: float,
+            uncertainty: Uncertainty,
+            unit: str,
+            stock_type: str):
+        """
+        Args
+        ----
+        stafdb_id: Id of timeframe in Stafdb
+        quantity (float): Amount of material, if None then amount is unknown
+        uncertainty (Uncertainty): Uncertainty around the value
+        unit (str): The unit of the material
+        stock_type (str): The type of stock being stored (net or total)
+        """
+
+        super(
+            StockValue, self).__init__(stafdb_id, quantity, uncertainty, unit)
+
+        assert (stock_type == 'Total' or stock_type == 'Net')
+        self.stock_type = stock_type
 
 
 class UmisProcess():
@@ -562,8 +591,6 @@ class Flow(Staf):
     stafdb_id (str): STAFDB id for the stock or flow
     name (str): Name of the stock or flow
     staf_reference (StafReference): Attributes the stock or flow is about
-    material_values_dict (dict(Material, Value)): Amount of stock for a
-            given material
 
     Attributes
     ----------
@@ -613,6 +640,30 @@ class Flow(Staf):
 
         self.origin = origin
         self.destination = destination
+
+        for key, value in material_values_dict.items():
+            assert isinstance(key, Material)
+            assert isinstance(value, Value)
+
+        self.__material_values_dict = material_values_dict
+
+    def get_value(self, material: Material):
+        """
+        Get value of material stored in flow
+
+        Args
+        ----
+        material (Material): Material
+
+        Returns
+        -------
+        None if material is not stored in flow
+        Value of material otherwise
+        """
+        assert isinstance(material, Material)
+        value = self.__material_values_dict.get(material)
+        assert isinstance(value, Value) or value is None
+        return value
 
     def __str__(self):
         flow_string = "Flow: {}, ID: {}".format(self.name, self.stafdb_id)
