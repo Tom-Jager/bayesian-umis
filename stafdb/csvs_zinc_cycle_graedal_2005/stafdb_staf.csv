@@ -1,0 +1,23 @@
+name,is_stock_or_is_flow,reference_space_id_origin,reference_space_id_destination,reference_timeframe,material_id_reference_material,process_id_origin,process_id_destination
+Concentrate,Flow,1,2,1,1,1,2
+Imported Refined Zinc,Flow,1,2,1,1,1,6
+Distributed Production,Flow,2,2,1,1,2,3
+Production Mass Balance,Flow,2,2,1,1,3,5
+Production Refined Zinc,Flow,2,2,1,1,3,6
+Slag,Flow,2,2,1,1,3,14
+Production Stock,Stock,2,2,1,1,4,2
+Distributed Fabrication and Manufacturing,Flow,2,2,1,1,6,7
+Semis,Flow,2,1,1,1,7,16
+Finished Products,Flow,2,1,1,1,7,17
+Products,Flow,2,2,1,1,7,8
+Fabrication and Manufacturing Discards,Flow,2,2,1,1,7,11
+Distributed Use,Flow,2,2,1,1,8,9
+Use stock,Stock,2,2,1,1,8,10
+Use Discards,Flow,2,2,1,1,9,11
+Waste Management Distribution,Flow,2,2,1,1,11,12
+Zinc Scrap,Flow,2,1,1,1,12,18
+"Landfilled Waste, Dissipated",Flow,2,2,1,1,12,14
+Zinc Scrap Fabrication,Flow,2,2,1,1,12,6
+Zinc Scrap Production,Flow,2,2,1,1,12,2
+Waste Management Mass Balancing,Flow,2,2,1,1,12,13
+Dissipation to Environment,Stock,2,2,1,1,14,15

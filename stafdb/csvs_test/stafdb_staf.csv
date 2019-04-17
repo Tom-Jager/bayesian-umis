@@ -1,0 +1,4 @@
+name,is_stock_or_is_flow,reference_space_id_origin,reference_space_id_destination,reference_timeframe,material_id_reference_material,process_id_origin,process_id_destination
+Flow1,Flow,2,1,1,1,1,2
+Stock1,Stock,1,1,1,1,3,2
+Flow2,Flow,1,2,1,1,2,4
