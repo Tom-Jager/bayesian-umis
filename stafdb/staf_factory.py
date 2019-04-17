@@ -3,22 +3,22 @@
 import json
 from typing import List
 
-from ..bayesumis.umis_data_models import (
+from bayesumis.umis_data_models import (
     Flow,
     LognormalUncertainty,
     Material,
     NormalUncertainty,
-    Process,
     Space,
     StafReference,
     Stock,
+    StockValue,
     Timeframe,
     UmisProcess,
     UniformUncertainty,
     Value
 )
 
-from stafdb_access_objects import (
+from stafdb.stafdb_access_objects import (
     DataAccessObject,
     MaterialAccessObject,
     ProcessAccessObject,
@@ -29,16 +29,16 @@ from stafdb_access_objects import (
 
 class StafFactory():
 
-    def __init__(self):
-        self.dao = DataAccessObject()
-        self.mao = MaterialAccessObject()
-        self.pao = ProcessAccessObject()
-        self.rsao = ReferenceSpaceAccessObject()
-        self.tao = ReferenceTimeframeAccessObject()
-        self.stao = StafAccessObject()
+    def __init__(self, db_folder):
+        self.dao = DataAccessObject(db_folder)
+        self.mao = MaterialAccessObject(db_folder)
+        self.pao = ProcessAccessObject(db_folder)
+        self.rsao = ReferenceSpaceAccessObject(db_folder)
+        self.tao = ReferenceTimeframeAccessObject(db_folder)
+        self.stao = StafAccessObject(db_folder)
 
-    def build_flow(self, flow_id):
-        staf_record = self.stao.get_staf_by_id(flow_id)
+    def build_staf(self, staf_id: str):
+        staf_record = self.stao.get_staf_by_id(staf_id)
 
         staf_name = staf_record['name']
 
@@ -48,10 +48,7 @@ class StafFactory():
         staf_reference = self.build_staf_reference(
             reference_material_id, reference_timeframe_id)
 
-        stock_type, material_values_dict = \
-            self.build_materials_values_dict(flow_id)
-
-        assert(stock_type == 'Flow')
+        stock_or_flow = staf_record['is_stock_or_is_flow']
 
         process_id_origin = staf_record['process_id_origin']
         reference_space_id_origin = staf_record['reference_space_id_origin']
@@ -59,10 +56,50 @@ class StafFactory():
         origin_process = self.build_process(
             process_id_origin, reference_space_id_origin)
 
-    def build_flows(self, flow_ids: List[str]):
+        process_id_destination = staf_record['process_id_destination']
+        
+        reference_space_id_destination = \
+            staf_record['reference_space_id_destination']
 
-        flows = [self.build_flow(flow_id) for flow_id in flow_ids]
-        return flows
+        destination_process = self.build_process(
+            process_id_destination, reference_space_id_destination)
+
+        if stock_or_flow == 'Flow':
+            material_value_dict = \
+                self.build_material_value_dict(staf_id)
+
+            flow = Flow(
+                staf_id,
+                staf_name,
+                staf_reference,
+                origin_process,
+                destination_process,
+                material_value_dict)
+
+            return flow
+        else:
+            if stock_or_flow == 'Stock':
+                material_stock_value_dict = \
+                    self.build_material_stock_value_dict(staf_id)
+
+                stock = Stock(
+                    staf_id,
+                    staf_name,
+                    staf_reference,
+                    origin_process,
+                    destination_process,
+                    material_stock_value_dict)
+
+                return stock
+            else:
+                raise ValueError("stock_or_flow value must be either 'Stock'"
+                                 + "or 'Flow', was {} instead"
+                                 .format(stock_or_flow))
+
+    def build_stafs(self, staf_ids: List[str]):
+
+        stafs = [self.build_staf(staf_id) for staf_id in staf_ids]
+        return stafs
 
     def build_material(self, material_id: str):
         material_record = self.mao.get_material_by_id(material_id)
@@ -70,7 +107,7 @@ class StafFactory():
         code = material_record['code']
         name = material_record['name']
         parent_name = material_record['material_id_parent']
-        is_separator = material_record['is_separator']
+        is_separator = bool(material_record['is_separator'])
 
         material = Material(
             str(material_id),
@@ -87,7 +124,7 @@ class StafFactory():
         process_record = self.pao.get_process_by_id(process_id)
         code = process_record['code']
         name = process_record['name']
-        is_separator = process_record['is_separator']
+        is_separator = bool(process_record['is_separator'])
         parent_name = process_record['process_id_parent']
         process_type = process_record['process_classification']
 
@@ -109,15 +146,25 @@ class StafFactory():
         space = Space(str(space_id), space_name)
         return space
 
-    def build_material_values_dict(self, staf_id: str):
+    def build_material_stock_value_dict(self, staf_id: str):
+        data_records = self.dao.get_data_by_stafid(staf_id)
+        material_stock_value_dict = {}
+
+        for data_record in data_records:
+            material_id = data_record['material_id']
+            material = self.build_material(material_id)
+
+            stock_value = self.build_stock_value_from_data_record(data_record)
+
+            material_stock_value_dict[material] = stock_value
+
+        return material_stock_value_dict
+
+    def build_material_value_dict(self, staf_id: str):
         data_records = self.dao.get_data_by_stafid(staf_id)
         material_values_dict = {}
 
-        stock_types = []
         for data_record in data_records:
-            stock_type = data_record['stock_type']
-            stock_types.append(stock_type)
-
             material_id = data_record['material_id']
             material = self.build_material(material_id)
 
@@ -125,13 +172,7 @@ class StafFactory():
 
             material_values_dict[material] = value
 
-        first_stock_type = stock_types[0]
-        for i, stock_type in enumerate(stock_types):
-            if stock_type != first_stock_type:
-                raise ValueError("Value #{} has a different stock type: {}"
-                                 .format(i, stock_type))
-
-        return first_stock_type, material_values_dict
+        return material_values_dict
 
     def build_staf_reference(
             self,
@@ -150,7 +191,7 @@ class StafFactory():
         start_time = int(timeframe_record['timeframe_start'])
         end_time = int(timeframe_record['timeframe_end'])
 
-        timeframe = Timeframe(timeframe_id, start_time, end_time)
+        timeframe = Timeframe(str(timeframe_id), start_time, end_time)
         return timeframe
 
     def build_uncertainty_from_string(self, uncertainty_string):
@@ -175,7 +216,7 @@ class StafFactory():
 
         raise ValueError("Uncertainty distribution: {} is unknown"
                          .format(uncertainty_dict['distribution']))
-
+    
     def build_value_from_data_record(self, data_record):
         stafdb_id = data_record['datum_id']
         quantity = float(data_record['quantity'])
@@ -192,4 +233,24 @@ class StafFactory():
             unit)
 
         return value
+
+    def build_stock_value_from_data_record(self, data_record):
+        stafdb_id = data_record['datum_id']
+        quantity = float(data_record['quantity'])
+
+        uncertainty_string = data_record['uncertainty_json']
+        uncertainty = self.build_uncertainty_from_string(uncertainty_string)
+
+        unit = data_record['unit']
+
+        stock_type = data_record['stock_type']
+
+        stock_value = StockValue(
+            stafdb_id,
+            quantity,
+            uncertainty,
+            unit,
+            stock_type)
+
+        return stock_value
 

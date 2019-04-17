@@ -17,13 +17,13 @@ import pymc3 as pm
 import theano.tensor as T
 from theano.tensor.nlinalg import matrix_inverse
 
-from ..bayesumis.umis_data_models import (
+from bayesumis.umis_data_models import (
     Flow,
     LognormalUncertainty,
     NormalUncertainty,
     Material,
     Staf,
-    Stock,
+    StockValue,
     Timeframe,
     UmisProcess,
     Uncertainty,
@@ -40,11 +40,14 @@ class UmisMathModel():
     pm_model (pm.Model): Model holding random variables to run MCMC sampling
         over
     """
+    INPUT_VAR_NAME = 'Inputs'
+    STAF_VAR_NAME = 'Stafs'
+    TC_VAR_NAME = 'TCs'
 
     def __init__(
             self,
-            process_stafs_dict: Dict[UmisProcess, Set[Staf]],
             external_inflows: Set[Flow],
+            process_stafs_dict: Dict[UmisProcess, Set[Staf]],
             external_outflows: Set[Flow],
             reference_material: Material,
             reference_time: Timeframe,
@@ -78,9 +81,9 @@ class UmisMathModel():
         reference_time (Timeframe): The timeframe over which the stocks and
             flows are modeled
         """
+
         self.reference_material = reference_material
         self.reference_time = reference_time
-        print("Version Wed 16:51")
         # Assigns a new index to each process
         self.__index_counter = 0
 
@@ -112,11 +115,11 @@ class UmisMathModel():
                 transformation_coeff_obs,
                 distribution_coeff_obs)
 
-            tc_matrix = pm.Deterministic('TCs', tc_matrix)
+            tc_matrix = pm.Deterministic(self.TC_VAR_NAME, tc_matrix)
 
             input_matrix = self.__create_input_matrix()
 
-            input_matrix = pm.Deterministic('Inputs', input_matrix)
+            input_matrix = pm.Deterministic(self.INPUT_VAR_NAME, input_matrix)
 
             input_sums = T.sum(input_matrix, axis=1)
 
@@ -124,8 +127,8 @@ class UmisMathModel():
                 matrix_inverse(T.eye(num_processes) - tc_matrix.T),
                 input_sums[:, None])
 
-            staf_eqs_2 = pm.Deterministic(
-                'staf_eqs_2',
+            stafs = pm.Deterministic(
+                self.STAF_VAR_NAME,
                 tc_matrix * process_throughputs[:, None])
 
         # Toms Model1
@@ -198,7 +201,7 @@ class UmisMathModel():
                 normal_staf_obs_eqs = pm.Deterministic(
                     'normal_staf_obs_eqs',
                     T.tensordot(
-                        normal_staf_obs_matrix, staf_eqs_2))
+                        normal_staf_obs_matrix, stafs))
 
                 pm.Normal(
                     'normal_staf_observations',
@@ -210,7 +213,7 @@ class UmisMathModel():
                 lognormal_staf_obs_eqs = pm.Deterministic(
                     'lognormal_staf_obs_eqs',
                     T.tensordot(
-                        lognormal_staf_matrix, staf_eqs_2))
+                        lognormal_staf_matrix, stafs))
 
                 pm.Lognormal(
                     'lognormal_staf_observations',
@@ -218,9 +221,9 @@ class UmisMathModel():
                     sd=lognormal_staf_sds[:, None],
                     observed=lognormal_staf_means[:, None])
 
-    def get_inflow_inds(self, inflow: Flow):
-        """ Gets the process index of the destination of the inflow """
-        dest_id = inflow.destination.diagram_id
+    def get_input_inds(self, staf: Staf):
+        """ Gets the process index of the destination of the staf """
+        dest_id = staf.destination_process.diagram_id
         dest_math_process = self.__id_math_process_dict.get(dest_id)
 
         if not dest_math_process:
@@ -231,15 +234,15 @@ class UmisMathModel():
 
         input_priors_list = self.__input_priors.get_input_priors_list(dest_id)
         if not input_priors_list:
-            raise ValueError("Process {} has no external inflows"
+            raise ValueError("Process {} has no external stafs"
                              .format(dest_id))
         col_ind = -1
         for i, input_prior in enumerate(input_priors_list):
-            if input_prior.origin_process_id == inflow.origin.diagram_id:
+            if input_prior.origin_process_id == staf.origin_process.diagram_id:
                 col_ind = i
 
         if col_ind == -1:
-            raise ValueError("Inflow {} not in model".format(inflow.stafdb_id))
+            raise ValueError("Inflow {} not in model".format(staf.stafdb_id))
 
         return dest_index, col_ind
 
@@ -254,9 +257,9 @@ class UmisMathModel():
         process_index = math_process.process_ind
         return process_index
 
-    def get_outflow_inds(self, outflow: Flow):
-        """ Gets the indices of a given stock """
-        origin_id = outflow.origin.diagram_id
+    def get_staf_inds(self, staf: Staf):
+        """ Gets the indices of a non input staf """
+        origin_id = staf.origin_process.diagram_id
         origin_math_process = self.__id_math_process_dict.get(origin_id)
 
         if not origin_math_process:
@@ -265,7 +268,7 @@ class UmisMathModel():
 
         origin_index = origin_math_process.process_ind
 
-        dest_id = outflow.destination.diagram_id
+        dest_id = staf.destination_process.diagram_id
         dest_math_process = self.__id_math_process_dict.get(dest_id)
 
         if not dest_math_process:
@@ -275,27 +278,30 @@ class UmisMathModel():
         dest_index = dest_math_process.process_ind
         return origin_index, dest_index
 
-    def get_stock_inds(self, stock: Stock):
-        """ Gets the indices of a given stock """
-        origin_process_id = stock.stock_process.diagram_id
-        origin_math_process = self.__id_math_process_dict.get(
-            origin_process_id)
+    def __add_staf_as_input_prior(
+            self,
+            origin_id: str,
+            destination_id: str,
+            uncertainty: Uncertainty):
+        """
+        Adds a new staf observation as an input prior
 
-        if not origin_math_process:
-            raise ValueError("Stock is not in this math model")
+        Args
+        ------------
+        origin_id (str): Diagram id of the origin of the staf value
+        destination_id (str): Diagram id of the destination of the staf value
+        uncertainty (Uncertainty): Uncertainty of the value of the observation
+        """
+        if destination_id not in self.__id_math_process_dict:
+            raise ValueError("This diagram does not contain" +
+                             " destination process with id {}"
+                             .format(destination_id))
 
-        origin_index = origin_math_process.process_ind
+        input_prior = StafPrior(
+            origin_id, destination_id, uncertainty)
 
-        storage_id = self.__get_storage_process_id(origin_process_id)
-
-        storage_process = self.__id_math_process_dict.get(storage_id)
-
-        if not storage_process:
-            raise ValueError("Stock is not in this math model")
-
-        storage_index = storage_process.process_ind
-
-        return origin_index, storage_index
+        self.__input_priors.add_external_input(
+            destination_id, input_prior)
 
     def __add_staf_observation(
             self,
@@ -388,21 +394,13 @@ class UmisMathModel():
 
                 if value:
 
-                    # TODO unit reconciliation
-                    origin_id = flow.origin.diagram_id
-
-                    destination_id = flow.destination.diagram_id
-
-                    if destination_id not in self.__id_math_process_dict:
-                        raise ValueError("This diagram does not contain" +
-                                         " destination process with id {}"
-                                         .format(destination_id))
-
-                    input_prior = StafPrior(
-                        origin_id, destination_id, value.uncertainty)
-
-                    self.__input_priors.add_external_input(
-                        destination_id, input_prior)
+                    origin_id = flow.origin_process.diagram_id
+                    destination_id = flow.destination_process.diagram_id
+                    
+                    self.__add_staf_as_input_prior(
+                        origin_id,
+                        destination_id,
+                        value.uncertainty)
 
                 else:
                     # TODO material reconciliation
@@ -484,21 +482,27 @@ class UmisMathModel():
 
                     value = staf.get_value(self.reference_material)
                     # Checks flow has an entry for the reference material
+                    if(value is None):
+                        print("Staf: {} has no value".format(staf.name))
+                        
                     if value:
 
                         # TODO Unit reconciliation
                         # Would involve getting value and checking unit
 
-                        if isinstance(staf, Flow):
-                            self.__create_math_processes_from_flow(staf)
-                        else:
-                            if isinstance(staf, Stock):
-                                self.__create_math_processes_from_stock(staf)
+                        if isinstance(value, StockValue):
+
+                            if value.stock_type == 'Net':
+                                self.__create_math_processes_from_staf(staf)
+
                             else:
-                                raise ValueError("Staf must be either stock " +
-                                                 "or flow instead was {}"
-                                                 .format(type(staf)))
- 
+                                # Doesn't support using data from total
+                                # stock values
+                                continue
+
+                        else:
+                            self.__create_math_processes_from_staf(staf)
+
                     else:
                         # TODO do material reconciliation stuff
                         continue
@@ -523,9 +527,9 @@ class UmisMathModel():
 
                     # TODO Unit reconciliation
 
-                    origin_id = flow.origin.diagram_id
+                    origin_id = flow.origin_process.diagram_id
 
-                    destination_id = flow.destination.diagram_id
+                    destination_id = flow.destination_process.diagram_id
 
                     # If origin process has not been created yet then
                     # create it
@@ -533,7 +537,7 @@ class UmisMathModel():
                                 .__contains__(origin_id)):
                         self.__create_math_process(
                             origin_id,
-                            flow.origin.process_type)
+                            flow.origin_process.process_type)
 
                         self.__id_math_process_dict[origin_id] \
                             .add_outflow(destination_id)
@@ -554,12 +558,17 @@ class UmisMathModel():
                     # TODO do material reconciliation stuff
                     continue
 
-    def __create_math_processes_from_flow(self, flow: Flow):
+    def __create_math_processes_from_staf(self, staf: Staf):
         """
-        Creates the math processes either side of the flow
+        Creates the math processes either side of the staf
         """
-        origin_id = flow.origin.diagram_id
-        destination_id = flow.destination.diagram_id
+
+        # Stocks from the virtual reservoir are seen as inputs
+        if staf.origin_process.process_type == 'Storage':
+            return
+
+        origin_id = staf.origin_process.diagram_id
+        destination_id = staf.destination_process.diagram_id
 
         # If origin process has not been created yet then
         # create it
@@ -567,7 +576,7 @@ class UmisMathModel():
                     .__contains__(origin_id)):
             self.__create_math_process(
                 origin_id,
-                flow.origin.process_type)
+                staf.origin_process.process_type)
 
             self.__id_math_process_dict[origin_id] \
                 .add_outflow(destination_id)
@@ -582,69 +591,7 @@ class UmisMathModel():
                     .__contains__(destination_id)):
             self.__create_math_process(
                 destination_id,
-                flow.destination.process_type)
-
-    def __create_math_processes_from_stock(self, stock: Stock):
-        """
-        Take the stock assigned to a process and creates mathematical
-        processes from it
-
-        Args
-        ------------
-        stock (Stock):
-        """
-
-        # TODO dealing with total stock
-        if stock.stock_type == 'Net':
-
-            # Check stock is about correct reference time
-            if stock.staf_reference.time == self.reference_time:
-
-                value = stock.get_value(self.reference_material)
-                # Check if stock has value for reference material
-                if value:
-
-                    stock_process = stock.stock_process
-
-                    if stock_process.process_type != "Transformation":
-                        raise ValueError("Stock {} must reside in"
-                                         .format(stock.stafdb_id) +
-                                         "Transformation process, instead" +
-                                         " process type was {}"
-                                         .format(stock_process))
-                                         
-                    # Model as a flow to a storage process
-                    origin_id = stock_process.diagram_id
-
-                    dest_id = self.__get_storage_process_id(
-                        stock_process.diagram_id)
-
-                    # If origin process has not been created yet then
-                    # create it
-                    if (not self.__id_math_process_dict
-                                .__contains__(origin_id)):
-                        self.__create_math_process(
-                            origin_id,
-                            stock_process.process_type)
-
-                        self.__id_math_process_dict[origin_id] \
-                            .add_outflow(dest_id)
-                    # Otherwise add the outflow to the existing process
-                    else:
-                        self.__id_math_process_dict[origin_id] \
-                            .add_outflow(dest_id)
-
-                    # If destination process has not been created yet
-                    # then create it as a storage process
-                    if (not self.__id_math_process_dict
-                                .__contains__(dest_id)):
-                        self.__create_math_process(
-                            dest_id,
-                            'Storage')
-
-                else:
-                    # TODO more material reconciliation stuff
-                    return
+                staf.destination_process.process_type)
 
     def __create_staf_obs_matrices(self, staf_obs):
         """
@@ -766,8 +713,8 @@ class UmisMathModel():
 
                     # TODO Unit reconciliation
                     # Would involve getting value and checking unit
-                    origin_id = outflow.origin.diagram_id
-                    destination_id = outflow.destination.diagram_id
+                    origin_id = outflow.origin_process.diagram_id
+                    destination_id = outflow.destination_process.diagram_id
                     uncertainty = value.uncertainty
 
                     normal_staf_obs, lognormal_staf_obs = \
@@ -828,30 +775,31 @@ class UmisMathModel():
                         origin_id = origin_process.diagram_id
                         # TODO Unit reconciliation
                         # Would involve getting value and checking unit
-                        if isinstance(staf, Flow):
-                            flow: Flow = staf
-                            destination_id = flow.destination.diagram_id
-                        else:
-                            if isinstance(staf, Stock):
-                                stock: Stock = staf
-                                destination_id = stock.stock_process.diagram_id
+                        
+                        destination_id = staf.destination_process.diagram_id
 
                         uncertainty = value.uncertainty
 
-                        normal_staf_obs, lognormal_staf_obs = \
-                            self.__add_staf_observation(
+                        if origin_process.process_type == 'Storage':
+                            self.__add_staf_as_input_prior(
                                 origin_id,
                                 destination_id,
-                                uncertainty,
-                                normal_staf_obs,
-                                lognormal_staf_obs)
+                                uncertainty)
+                        else:        
+                            normal_staf_obs, lognormal_staf_obs = \
+                                self.__add_staf_observation(
+                                    origin_id,
+                                    destination_id,
+                                    uncertainty,
+                                    normal_staf_obs,
+                                    lognormal_staf_obs)
 
-                        staf_prior = StafPrior(
-                            origin_id,
-                            destination_id,
-                            uncertainty)
+                            staf_prior = StafPrior(
+                                origin_id,
+                                destination_id,
+                                uncertainty)
 
-                        staf_priors.append(staf_prior)
+                            staf_priors.append(staf_prior)
 
                     else:
                         # TODO do material reconciliation stuff
@@ -921,8 +869,6 @@ class UmisMathModel():
 
         tc_matrix = T.zeros((num_of_processes, num_of_processes))
 
-        np_matrix = np.zeros((num_of_processes, num_of_processes))
-
         for process_id, math_process in self.__id_math_process_dict.items():
             tc_observation = None
             if isinstance(math_process, MathTransformationProcess):
@@ -946,8 +892,6 @@ class UmisMathModel():
             tc_matrix = T.set_subtensor(
                 tc_matrix[[origin_ind], dest_inds], dest_rv)
 
-            np_matrix[[origin_ind], dest_inds] = dest_inds
-
         return tc_matrix
 
     def __get_process_ind(self, process_id: str) -> int:
@@ -959,20 +903,6 @@ class UmisMathModel():
                              .format(process_id))
 
         return ind
-
-    def __get_storage_process_id(
-            self,
-            process_diagram_id: str) -> str:
-        """
-        Makes a math id for storage to a process
-
-        Args
-        ------------
-        process_stafdb_id (str): Id of process in umis diagram
-        """
-        storage_process_id = "{}_STORAGE".format(process_diagram_id)
-
-        return storage_process_id
 
 
 class TransformationCoefficient():
@@ -1155,8 +1085,12 @@ class MathDistributionProcess(MathProcess):
         dist_coeffs (DistributionCoefficients): known transfer coefficients
         """
 
-        assert (self.n_outflows == len(self.outflow_process_ids) and
-                self.n_outflows > 0)
+        assert (self.n_outflows == len(self.outflow_process_ids))
+
+        if (self.n_outflows == 0):
+            print("Process with id: {}, has no outflows"
+            .format(self.process_id))
+            return [], 0
 
         if not dist_coeffs:
             # If no coefficients supplied, model as a uniform dirichlet
@@ -1257,9 +1191,13 @@ class MathTransformationProcess(MathProcess):
         deviation for transfer coefficient to storage process
         """
 
-        assert (self.n_outflows == len(self.outflow_process_ids) and
-                self.n_outflows > 0)
+        assert (self.n_outflows == len(self.outflow_process_ids))
 
+        if (self.n_outflows == 0):
+            print("Process with id: {}, has no outflows"
+            .format(self.process_id))
+            return [], 0
+        
         if self.n_outflows == 1:
             random_variable = pm.Deterministic(
                 "P_{}".format(

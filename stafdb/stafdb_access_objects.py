@@ -3,14 +3,14 @@ from pathlib import Path
 
 import pandas as pd
 
-import db_writer_helpers as db_helpers
+# import db_writer_helpers as db_helpers
 
 # PATH_TO_CSVS = Path(
 #     '/home/FourthYear/Thesis/Code/bayesian-umis/bayesumis/stafdb/csvs')
 
 
-PATH_TO_CSVS = Path(
-    'stafdb/csvs')
+PATH_TO_MODULE = Path(
+    'stafdb')
 
 
 # PATH_TO_CSVS = Path(
@@ -21,11 +21,13 @@ class StafdbAccessObject():
 
     def __init__(
             self,
+            db_folder,
             columns,
             table_path):
 
         self.columns = columns
-        self.table_path = PATH_TO_CSVS.joinpath(table_path)
+        self.table_path = \
+            PATH_TO_MODULE.joinpath(db_folder).joinpath(table_path)
 
     def _load_table(self):
 
@@ -50,7 +52,7 @@ class StafAccessObject(StafdbAccessObject):
     Accesses stafdb_staf.csv, offers operations over it
     """
     
-    def __init__(self):
+    def __init__(self, db_folder):
         columns = [
             'name',
             'is_stock_or_is_flow',
@@ -64,7 +66,7 @@ class StafAccessObject(StafdbAccessObject):
         table_path = 'stafdb_staf.csv'
 
         super(StafAccessObject, self).__init__(
-            columns, table_path)
+            db_folder, columns, table_path)
 
     def __load_table(self):
         return super(StafAccessObject, self)._load_table()
@@ -76,9 +78,10 @@ class StafAccessObject(StafdbAccessObject):
         table = self.__load_table()
         return super(StafAccessObject, self)._get_by_id(val_id, table)
 
-    def insert_flow(
+    def insert_staf(
             self,
-            flow_name: str,
+            staf_name: str,
+            staf_type: str,
             origin_space_id: str,
             dest_space_id: str,
             timeframe_id: str,
@@ -86,8 +89,8 @@ class StafAccessObject(StafdbAccessObject):
             origin_id: str,
             destination_id: str):
 
-        name = flow_name
-        is_stock_or_flow = 'Flow'
+        name = staf_name
+        is_stock_or_flow = staf_type
         reference_space_origin = origin_space_id
         reference_space_destination = dest_space_id
         reference_timeframe = timeframe_id
@@ -120,7 +123,7 @@ class ProcessAccessObject(StafdbAccessObject):
     Accesses stafdb_process.csv, offers operations over it
     """
 
-    def __init__(self):
+    def __init__(self, db_folder):
         columns = [
             'name',
             'code',
@@ -132,7 +135,7 @@ class ProcessAccessObject(StafdbAccessObject):
         table_path = 'stafdb_process.csv'
 
         super(ProcessAccessObject, self).__init__(
-            columns, table_path)
+            db_folder, columns, table_path)
 
     def __load_table(self):
         return super(ProcessAccessObject, self)._load_table()
@@ -154,8 +157,9 @@ class ProcessAccessObject(StafdbAccessObject):
         process_id_parent = 'None'
         is_separator = False
 
-        assert (process_type == 'Transformation' or
-                process_type == 'Distribution')
+        assert (process_type == 'Transformation'
+                or process_type == 'Distribution'
+                or process_type == 'Storage')
 
         process_classification = process_type
 
@@ -181,7 +185,7 @@ class DataAccessObject(StafdbAccessObject):
     Accesses stafdb_data.csv, offers operations over it
     """
 
-    def __init__(self):
+    def __init__(self, db_folder):
         columns = [
             'quantity',
             'unit',
@@ -195,7 +199,7 @@ class DataAccessObject(StafdbAccessObject):
         table_path = 'stafdb_data.csv'
 
         super(DataAccessObject, self).__init__(
-            columns, table_path)
+            db_folder, columns, table_path)
 
     def __load_table(self):
         return super(DataAccessObject, self)._load_table()
@@ -252,7 +256,7 @@ class MaterialAccessObject(StafdbAccessObject):
     Accesses stafdb_material.csv, offers operations over it
     """
 
-    def __init__(self):
+    def __init__(self, db_folder):
         columns = [
             'name',
             'code',
@@ -263,7 +267,7 @@ class MaterialAccessObject(StafdbAccessObject):
         table_path = 'stafdb_material.csv'
 
         super(MaterialAccessObject, self).__init__(
-            columns, table_path)
+            db_folder, columns, table_path)
 
     def __load_table(self):
         table = super(MaterialAccessObject, self)._load_table()
@@ -305,7 +309,7 @@ class ReferenceSpaceAccessObject(StafdbAccessObject):
     Accesses stafdb_reference_space.csv, offers operations over it
     """
 
-    def __init__(self):
+    def __init__(self, db_folder):
         columns = [
             'name',
         ]
@@ -313,7 +317,7 @@ class ReferenceSpaceAccessObject(StafdbAccessObject):
         table_path = 'stafdb_reference_space.csv'
 
         super(ReferenceSpaceAccessObject, self).__init__(
-            columns, table_path)
+            db_folder, columns, table_path)
 
     def __load_table(self):
         table = super(ReferenceSpaceAccessObject, self)._load_table()
@@ -350,7 +354,7 @@ class ReferenceTimeframeAccessObject(StafdbAccessObject):
     Accesses stafdb_reference_timeframe.csv, offers operations over it
     """
 
-    def __init__(self):
+    def __init__(self, db_folder):
         columns = [
             'name',
             'timeframe_start',
@@ -360,7 +364,7 @@ class ReferenceTimeframeAccessObject(StafdbAccessObject):
         table_path = 'stafdb_reference_timeframe.csv'
 
         super(ReferenceTimeframeAccessObject, self).__init__(
-            columns, table_path)
+            db_folder, columns, table_path)
 
     def __load_table(self):
         table = super(ReferenceTimeframeAccessObject, self)._load_table()
@@ -411,28 +415,28 @@ class ReferenceTimeframeAccessObject(StafdbAccessObject):
 # print(pao.get_process_by_id("2"))
 # print(pao.get_process_by_id("1"))
 
-dao = DataAccessObject()
-dao.reset_table()
+# dao = DataAccessObject()
+# dao.reset_table()
 
-uncert_string = db_helpers.uniform_uncertainty_string(0, 150)
-dao.insert_data(10, 'g', '1', '99', 'Net', uncert_string)
+# uncert_string = db_helpers.uniform_uncertainty_string(0, 150)
+# dao.insert_data(10, 'g', '1', '99', 'Net', uncert_string)
 
-norm_string = db_helpers.normal_uncertainty_string(20, 3)
-dao.insert_data(20, 'kg', '1', '99', 'Flow', norm_string)
+# norm_string = db_helpers.normal_uncertainty_string(20, 3)
+# dao.insert_data(20, 'kg', '1', '99', 'Flow', norm_string)
 
-dao.insert_data(30, 'g', '1', '99', 'Flow', norm_string)
+# dao.insert_data(30, 'g', '1', '99', 'Flow', norm_string)
 
-dao.insert_data(40, 'g', '1', '100', 'Flow', norm_string)
+# dao.insert_data(40, 'g', '1', '100', 'Flow', norm_string)
 
-dao.insert_data(50, 'g', '1', '99', 'Flow', norm_string)
+# dao.insert_data(50, 'g', '1', '99', 'Flow', norm_string)
 
-dao.insert_data(60, 'g', '1', '100', 'Net', norm_string)
+# dao.insert_data(60, 'g', '1', '100', 'Net', norm_string)
 
-dao.insert_data(70, 'g', '1', '99', 'Flow', norm_string)
+# dao.insert_data(70, 'g', '1', '99', 'Flow', norm_string)
 
-dao.insert_data(80, 'g', '1', '99', 'Flow', norm_string)
+# dao.insert_data(80, 'g', '1', '99', 'Flow', norm_string)
 
-print(dao.get_data_by_stafid('100'))
+# print(dao.get_data_by_stafid('100'))
 # mao = MaterialAccessObject()
 # mao.reset_table()
 # mao.insert_material('Cannabis')

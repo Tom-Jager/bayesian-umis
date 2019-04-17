@@ -34,9 +34,8 @@ class UmisDiagram():
     def __init__(
                 self,
                 external_inflows: Set[Flow],
-                internal_flows: Set[Flow],
-                external_outflows: Set[Flow],
-                stocks: Set[Stock]):
+                internal_stafs: Set[Staf],
+                external_outflows: Set[Flow]):
         """
         Initializes a diagram from its components and ensures that it is valid
         within UMIS definitions
@@ -45,7 +44,7 @@ class UmisDiagram():
         ----
 
         external_inflows: Set of flows into processes from outside the diagram
-        internal_flows: Set of stocks and flows between processes in the
+        internal_stafs: Set of stocks and flows between processes in the
             diagram
         external_outflows: Set of flows from processes to outside the diagram
         """
@@ -54,40 +53,41 @@ class UmisDiagram():
 
         self.__process_stafs_dict: Dict[UmisProcess, Set[Staf]] = {}
 
-        self.__add_internal_flows(internal_flows)
+        self.__add_internal_stafs(internal_stafs)
 
         self.__add_external_inflows(external_inflows)
 
         self.__add_external_outflows(external_outflows)
 
-        self.__add_stocks(stocks)
-
-    def __add_internal_flows(self, flows: Set[Flow]):
+    def __add_internal_stafs(self, stafs: Set[Staf]):
         """
-        Adds internal flows and their processes to the diagram
+        Adds internal stafs and their processes to the diagram
 
         Args
         ----
 
-        flows (list(Flow)): List of internal flows
+        stafs (set(Staf)): Set of internal stafs
         """
 
-        for flow in flows:
-            
-            flow: Flow = flow
-            self.__check_flow_type(flow)
+        for staf in stafs:
 
-            self.__add_flow(flow)
+            assert isinstance(staf, Staf)
 
-            dest_process = flow.destination
+            origin_process = staf.origin_process
+            if origin_process not in self.__process_stafs_dict:
+                self.__process_stafs_dict[origin_process] = set()
+
+            self.__process_stafs_dict[origin_process].add(staf)
+
+            dest_process = staf.destination_process
             if dest_process not in self.__process_stafs_dict:
                 self.__process_stafs_dict[dest_process] = set()
 
             self.__update_diagram_reference(
-                flow.staf_reference.time,
-                flow.staf_reference.material,
-                flow.origin.reference_space,
-                flow.destination.reference_space)
+                staf.staf_reference.time,
+                staf.staf_reference.material,
+                staf.origin_process.reference_space,
+                staf.destination_process.reference_space)
 
     def __add_external_inflows(self, flows: Set[Flow]):
         """ Checks legality of external inflows, adds them to the diagram """
@@ -96,7 +96,7 @@ class UmisDiagram():
         for flow in flows:
             self.__check_flow_type(flow)
 
-            origin_process = flow.origin
+            origin_process = flow.origin_process
             if origin_process in self.__process_stafs_dict:
                 raise ValueError(
                     "Origin process of external inflow ({}) is in diagram"
@@ -107,7 +107,7 @@ class UmisDiagram():
                     "External inflow {} has already".format(flow) +
                     " been input")
 
-            dest_process = flow.destination
+            dest_process = flow.destination_process
             if dest_process not in self.__process_stafs_dict:
                 self.__process_stafs_dict[dest_process] = set()
 
@@ -116,8 +116,8 @@ class UmisDiagram():
             self.__update_diagram_reference(
                 flow.staf_reference.time,
                 flow.staf_reference.material,
-                flow.origin.reference_space,
-                flow.destination.reference_space)
+                flow.origin_process.reference_space,
+                flow.destination_process.reference_space)
 
     def __add_external_outflows(self, flows: Set[Flow]):
         """Checks legality of external outflow and adds it to the diagram"""
@@ -126,7 +126,7 @@ class UmisDiagram():
         for flow in flows:
             self.__check_flow_type(flow)
 
-            dest_process = flow.destination
+            dest_process = flow.destination_process
 
             if dest_process in self.__process_stafs_dict:
                 raise ValueError(
@@ -143,22 +143,22 @@ class UmisDiagram():
             self.__update_diagram_reference(
                 flow.staf_reference.time,
                 flow.staf_reference.material,
-                flow.origin.reference_space,
-                flow.destination.reference_space)
+                flow.origin_process.reference_space,
+                flow.destination_process.reference_space)
 
-    def __add_flow(self, flow: Flow):
+    def __add_staf(self, staf: Staf):
         """
-        Adds flow to process_outflow_dict
+        Adds staf to process_stafs_dict
 
         Args
         ---------
-        flow (Flow)
+        staf (Staf)
         """
-        origin_process = flow.origin
+        origin_process = staf.origin_process
         if origin_process not in self.__process_stafs_dict:
             self.__process_stafs_dict[origin_process] = set()
         
-        self.__process_stafs_dict[origin_process].add(flow)
+        self.__process_stafs_dict[origin_process].add(staf)
 
     def __add_stocks(self, stocks: Set[Stock]):
         """ Add stocks to processes in diagram """
