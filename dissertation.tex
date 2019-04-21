@@ -235,12 +235,12 @@ advice or time), and so on.
 \noindent
 \section{Industrial Ecology}
 
-Industrial ecology (IE) is an area of research focused around the flow of material, energy and money through a system. It primarily focuses on the relationship between human originating sectors (anthroposphere) and the natural ecosystem by modelling industrial infrastructures as their own ecosystems which interact with the natural environment \cite{tibbs1992industrial}. The International Society for Industrial Ecology uses the following definition by White, "the study of the flows of materials and energy in industrial and consumer activities, of the effects of these flows on the environment, and of the influences of economic, political, regulatory and social factors on the flow, use and transformation of resources" \cite{white1994greening}. As such it is a multi-disciplinary field which seeks to account for material and energy data and use it to inform social and economic policy as well as business strategy. The primary motivator for Industrial Ecology is to encourage and ensure sustainable development. By most agreed definitions, this involves ensuring that the economical and societal growth occurs without hampering the ability of development in the future \cite{robert2005sustainable}. Therefore research in Industrial Ecology focuses on decoupling the relationship industrial development has on natural ecosystems. To do this, the entire life cycle of products and materials are analyzed in order to find areas for greater efficiency and reduced reliance on natural resources. Studies in Industrial Ecology can focus on identifying the amount of flow of specific materials from the anthroposphere into the environment \cite{rockstrom2009safe}, to assessing where new stocks of materials are accumulating \cite{müller2014modeling}, or finding energy and material "loops" which can be closed in order to reuse waste material and energy\cite{esty1998industrial}.
+Industrial ecology (IE) is an area of research focused around the flow of material, energy and money through a system. It can also be described as socio-economic metabolism (SEM) as it models the production, consumption and storage of resources by society. It primarily focuses on the relationship between human originating sectors (anthroposphere) and the natural ecosystem by modelling industrial infrastructures as their own subsystems that interact with their environment \cite{tibbs1992industrial}. The International Society for Industrial Ecology uses the following definition by White, "the study of the flows of materials and energy in industrial and consumer activities, of the effects of these flows on the environment, and of the influences of economic, political, regulatory and social factors on the flow, use and transformation of resources" \cite{white1994greening}. As such it is a multi-disciplinary field which seeks to account for material and energy data and use it to inform social and economic policy as well as business strategy. The primary motivator for Industrial Ecology is to encourage and ensure sustainable development. By most agreed definitions, this involves ensuring that the economical and societal growth occurs without hampering the ability of development in the future \cite{robert2005sustainable}. Therefore research in Industrial Ecology focuses on decoupling the relationship industrial development has on natural ecosystems. To do this, the entire life cycle of products and materials are analyzed in order to find areas for greater efficiency and reduced reliance on natural resources. Studies in Industrial Ecology can focus on identifying the amount of flow of specific materials from the anthroposphere into the environment \cite{rockstrom2009safe}, to assessing where new stocks of materials are accumulating \cite{müller2014modeling}, or finding energy and material "loops" which can be closed in order to reuse waste material and energy\cite{esty1998industrial}.
 
 \subsection{Industrial Ecology Methodology}
 There exist a variety of different methodologies to conduct studies in Industrial Ecology. The data resulting from IE studies therefore is usually in a format only suited for that methodology. The three most prevalent methods are Life Cycle Assessments (LCAs), Input-Output Analysis (IOA) and Material Flow Analysis (MFA) \cite{myers2019unified}.
 
-Life Cycle Assessments follow the environmental impact of a product system throughout its life cycle \cite{ISO14040}. It often involves compiling an inventory analysis where the life cycle is modelled as a system of processes with material and energy flowing between them. Inputs and outputs from each process are modelled with special interest paid to flows into and from the environment. This is used to assess the impact of the product being assessed and provide information for corporate decision making in order to improve the efficiency of a product as well as reducing its environmental impact. LCAs have been known to have sector wide impacts through industry collaboration \cite{mattila2012methodological}. This is made possible through open data formats such as EcoSpold and ILCD as well as shared databases such as Ecoinvent \cite{wernet2016ecoinvent}. 
+Life Cycle Assessments follow the environmental impact of a product system throughout its life cycle \cite{ISO14040}. It often involves compiling an inventory analysis where the life cycle is modelled as a system of processes with material and energy flowing between them. Inputs and outputs from each process are specified with special interest paid to flows into and from the environment. This is used to assess the impact of a product and provide information for corporate decision making in order to improve the efficiency of a product. Other motivators are in reducing a product's environmental impact. LCAs have been known to have sector wide impacts through industry collaboration \cite{mattila2012methodological}. Open data formats such as EcoSpold and ILCD as well as shared databases such as Ecoinvent \cite{wernet2016ecoinvent}, make this possible as different industry partners can combine research and also easily recreate results to ensure accuracy. 
 
 Input-Output Analyses takes an economic approach to IE and tracks the flow of money between entities in a geographic region. These can then be used to allocate environmental impact to these entities. As economic data on inter-sector flows are generally more granular than data on the movement of physical material, it can be useful to apply data from IOAs in studies that use other methodologies \cite{chen2016building}.
 
@@ -258,7 +258,7 @@ Myers et al. has created UMIS, the Unified Materials Information System \cite{my
 
 UMIS is a step in shifting industrial ecology towards a more virtual platform where industrial ecological data can be stored in a centralized knowledge base, with an ecosystem of tools and routines to develop models and analyze the data for further studies. This would reduce the time taken to perform further studies, allow of greater collaboration in the field and provide greater transparency on the results of studies \cite{hertwich2018nullius}. An example of such a platform is the Metabolism Of Cities project, a digital research lab created by Paul Hoekman \cite{MetabolismOfCities}. The platform's primary aim is to encourage research and allow collaboration in studying the metabolism of resources and energy surrounding specific regions. It contains a store of publications, IE data and an online material flow analysis tool to allow users to easily conduct MFA studies and interface with a common online database. Work is currently being done to integrate metabolism of cities with STAFDB to allow for future research to be directly inserted into the database. 
 
-\subsection{UMIS Terminology}
+\subsubsection{UMIS Terminology}
 The components and design of a UMIS diagram are drawn from MFA concepts but can still be reconciled with IOA and LCA data. A definition list for the components of a UMIS diagram can be found in table \ref{umis_terms}.
 
 \begin{table}[ht]
@@ -281,18 +281,131 @@ Cross boundary flow    & \begin{tabular}[c]{@{}l@{}}Movement from material outsi
 \label{umis_terms}
 \end{table}
 
-A UMIS diagram can be thought to consist of three layers, a processes and flows layer, a virtual reservoir layer and a metadata layer. The processes and flows layer builds of the work of Pauliuk in \cite{pauliuk2015general}, and structures the system as flows between transformation and distribution processes in the form of a bipartite directed graph. The virtual reservoir lies on top of this graph and contains information relating to stock. When material is moved in or out of storage in a system, it is represented by moving into or out of the virtual reservoir. As processes represent physical locations in a system, stock are positioned on top of existing processes. The metadata layer is for storing additional information about stocks flows and processes. This is information concerning the reference space or time frame of a component, source of the data, uncertainty around a quantity's value, unit of the value, calculation details e.t.c.
+A UMIS diagram can be thought to consist of three layers, a processes and flows layer, a virtual reservoir layer and a metadata layer. The processes and flows layer builds of the work of Pauliuk in \cite{pauliuk2015general}, and structures the system as flows between transformation and distribution processes in the form of a bipartite directed graph. The virtual reservoir lies on top of this graph and contains information relating to stock. When material is moved in or out of storage in a system, it is represented by moving into or out of the virtual reservoir. As processes represent physical locations in a system, stock are only positioned on top of existing processes. The metadata layer is for storing additional information about stocks flows and processes. This is information concerning the reference space or time frame of a component, source of the data, uncertainty around a quantity's value, unit of the value, calculation details e.t.c. A visualization of the key aspects of a UMIS diagram can be seen in figure \ref{fig:umis_aspects}. In order to ensure that UMIS diagrams are able to be computer generated, transformation processes are enforced to have only one outflow to a distribution process. If a system's design indicates a flow from a transformation process to multiple distribution processes, the processes must be further disaggregated to separate them. 
 
-UMIS also deals with the divergent dissagregation problem present in processes and materials. This is done by assigning every process and material a parent field and an \texttt{is\_separator} flag. The parent field contains the process or materials at the next higher level of aggregation. For example the parent field for a blue car material would be car. As a result the processes and materials stored by STAFDB form a tree structure with the \texttt{is\_separator} flag present on edges in the tree to detect divergent disaggregation. This thesis focuses on the relationship between flows and processes and therefore considerations about disaggregation are out of scope, but it is likely that the algorithm I have produced will be able to be extended to navigate the aggregation tree and ensure that divergent disaggregation does not occur within a UMIS diagram.
+\subsubsection{Divergent Disaggregation}
+UMIS also deals with the divergent dissagregation problem present in processes and materials. This is done by assigning every process and material a parent field and an \texttt{is\_separator} flag. The parent field contains the process or materials at the next higher level of aggregation. For example the parent field for a blue car material would be car. As a result the processes and materials stored by STAFDB form a tree structure with the \texttt{is\_separator} flag represent on edges in the tree to detect divergent disaggregation. This thesis focuses on the relationship between flows and processes and therefore considerations about disaggregation are out of scope, but it is likely that the program I have produced will be able to be extended to navigate the aggregation tree and ensure that divergent disaggregation does not occur within a UMIS diagram.
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=\textwidth]{images/umis_aspects.jpg}
-\caption{(a) Key aspects of a UMIS diagram, visualizing it in a matrix style. Contains Transformative, Distributive and Storage processes as well as 3 flows. (b) The orientation of the virtual reservoir and metadata layer in reference to processes and flows. Flows depicted by grey arrows in (a) and conceptual linkages denoted by black arrows in (b) are for illustration and are not properties of UMIS diagrams. UMIS = Unified Materials Information System. Adapted from Unified Materials Information System(UMIS)An Integrated Material Stocks and Flows Data Structure by Myers et al.}
+\includegraphics[width=0.6\textwidth]{images/umis_aspects.jpg}
+\caption{(a) Key aspects of a UMIS diagram, visualizing it in a matrix style. Contains transformation, distribution and Storage processes as well as 3 flows. The processes lie on the diagonal and the flows are on the row of the origin process and the column of the destination process (b) The orientation of the virtual reservoir and metadata layer in reference to processes and flows. Flows depicted by grey arrows in (a) and conceptual linkages denoted by black arrows in (b) are for illustration and are not properties of UMIS diagrams. UMIS = Unified Materials Information System. Adapted from \cite{myers2019unified}}
 \label{fig:umis_aspects}
 \end{figure}
 
+\subsubsection{Mass Balancing}
+MFA, IOA and LCA all share core modelling concepts. Each methodology involve a separation background and foreground systems, with the background system acting as a more generic supplier of inputs and outputs to the more detailed foreground system \cite{pauliuk2016prospective}. The foreground system is often modelled through a system of equations and constraints, but one common concept to all methodologies is that of mass balancing. The idea of this is that throughout the entire system, matter must be conserved. Therefore the total mass of a given material entering a process must be equal to the total mass leaving \cite{brunner2004practical}. This is defined by the following equation:
+
+Where $i,j \in \{1,..,n\} $ are the processes in the system, $f_{ij}$ is a flow from process $i$ to $j$, $q_i$ and $o_i$ are the inflow and outflow between process $i$ and the background system respectively, and $s_i$ is the stock being supplied to or coming from storage:     
+
+\begin{equation}
+    \forall i, q_i + \sum^{n}_{j}f_{ji} = \sum^{n}_{j}f_{ij} + o_{i} \pm{s_i} 
+\end{equation}
+
+Further constraints can be supplied in the form of transfer coefficients which allocate the total amount of material flowing into the process amongst the flows leaving the process. With $a_{ij}$ being the transfer coefficient of the flow from process $i$ to $j$, $s_i$ is stock coming from storage (which may be 0) and $z_i$ as the total of all inflows to process $i$, this can be defined as:
+
+\begin{equation}
+    z_i = q_i + \sum^{n}_{j}f_{ji} + s_i
+\end{equation}
+
+
+
+\begin{equation}
+    f_{ij} = z_{i}a_{ij}
+\end{equation}
+
+% TODO Fix this up
+Whilst Myers et al. have demonstrated how material systems in LCA, MFA, IOA studies can be visualized as UMIS diagrams \cite{myers2019unified}, no work has be done to use UMIS structured data in a computational model. In order to demonstrate UMIS's suitability as a structuring system for data in a computational model I will develop a calculation engine for propagating uncertainty through UMIS structured systems.
+
+\section{Uncertainty in IE}
+\subsection{What is uncertainty?}
+Common practice in IE research is to first define the system in terms of stocks, flows and processes and then identify values for the quantities of stock and flow. These observed values have an associated uncertainty which leads to an uncertainty in model outputs. As IE studies can be used to guide economic and political decisions, it is important to incorporate uncertainty into the results. A study by Danius and Burstr\"om \cite{danius2001regional} found that initial conclusions drawn when studying the flow of nitrogen were inconclusive when data uncertainties were taken into account. Therefore in cases where a comparison of systems are being conducted, the uncertainty around both systems must be taken into account to ensure that the results found are significant and cannot be attributed to variation in underlying data. As such, uncertainty is an important and well studied topic in the fields of LCA, IOA and MFA \cite{temursho201712, laner2014systematic, heijungs2004review}.
+
+The sources of uncertainty can be separated into two kinds \cite{ferson1996different}. The first is aleatory uncertainty which comes from randomness in the underlying value. This is where either the method of measuring the value has an uncertainty around it so the precise value is unknown, or the value itself is non-deterministic. The second kind is epistemic which refers to generalizations about the value. One cause can originate from when values vary over space and time, therefore the value for a time period (e.g one year) or a geographic area (e.g the entire UK) can have an associated uncertainty. Another source can be subjective judgement such as when an unknown value is estimated based on a known value. Other causes can include scientific disagreement over the true value of a quantity, imprecise language on what the quantity refers to (e.g a material being said to be mostly carbon), and approximation in parameters in order to describe the system as a mathematical model. Epistemic uncertainty is potentially reducible through further investigation, however due to feasibility constraints it is sometimes unavoidable \cite{laner2014systematic}.
+
+Further forms of epistemic uncertainty can be caused by possibilities in how the system is defined or described, however as we are looking at a general algorithm for propagating uncertainty in systems, this can be seen as out of scope. Instead, I will focus on uncertainty in specific parameter values.
+
+\subsection{Incorporating Uncertainty into UMIS}
+In \cite{laner2014systematic}, Laner et al. describe a five step procedure for incorporating uncertainty into MFA studies. These can be found in figure \ref{fig:incorp uncertainty procedure}:
+
+\begin{figure}[h!]
+    \begin{enumerate}
+        \item Establish mathematical model
+        \begin{itemize}
+            \item Define system elements and relationships between the elements
+            \item Define equations based on mass balance principle
+        \end{itemize}
+        
+        \item Characterize data uncertainty
+        \begin{itemize}
+            \item Evaluate information about data (model parameters, inputs and outputs)
+            \item Define characterizing functions for uncertainty
+        \end{itemize}
+        
+        \item Combine data and mathematical model
+        \begin{itemize}
+            \item Balance model and cross-check data
+            \item Evaluate plausibility and reconcile data (iterative)
+            \item Produce a calibrated model using all available data
+        \end{itemize}
+        
+        \item Calculate uncertainty for calibrated model
+        \begin{itemize}
+            \item Propagate uncertainty through the model and calculate uncertainty of stocks and flows
+            \item Interpret uncertainty estimates for resultant values from model 
+        \end{itemize}
+        
+        \item Analyze sensitivity \& develop scenarios
+        \begin{itemize}
+            \item Identify critical model parameters
+            \item Change parameters to perform scenario analysis
+        \end{itemize}
+    \end{enumerate}
+    \caption{Source: \cite{laner2014systematic}}
+    \label{fig:incorp uncertainty procedure}
+\end{figure}
+
+% IF you need to pad stuff out you can put another paragraph here about other ways they characterize uncertainty
+
+UMIS provides a method for structuring stocks and flows data into the system described in step one of this procedure however does not explicitly specify a unified way for specifying how the uncertainty around data values must be described. Current development on STAFDB and in the Metabolism of Cities project favours an approach investigated by Laner in \cite{laner2016novel}. This strategy combines the use of a pedigree matrix to classify data quality, as defined by Weidema and Wesnaes \cite{weidema1996data}, and the application of data quality to uncertainty by Hedbrandt and S\"orme \cite{hedbrant2001data}. The pedigree matrix provides five criteria of data quality (reliability, completeness, temporal correlation and geographical correlation). When a data point is recorded it is given a score for each criteria. The score is combined with a sensitivity level to provide a coefficient of variation. The data point can then be modelled as a normally distributed random variable with a standard deviation related to its coefficient of variation. As stocks and flow values can never be negative and can have asymmetrical properties, it can be appropriate to model the data point as a log-normal random variable. Therefore Laner also provides a method for characterizing data quality as an uncertainty factor which relates to the standard deviation of a log-normal distribution. Therefore Laner's work could be used to convert descriptions of a data point's uncertainty from quality scores to probability density functions.
+
+Whilst the above approach provides a method for characterizing the uncertainty of individual data points independently, it does not provide support for combining the the data points as a system. This is key to steps 3 and 4 of the procedure in figure \ref{fig:incorp uncertainty procedure}. To do this the data must be arranged as a mathematical model and the uncertainties of each model parameter must be calculated in respect to each other. Furthermore, a framework must be developed to infer uncertainty estimates for values calculated by the model. In \cite{lupton2018incremental}, Lupton et al. apply a Bayesian inference approach for propagating uncertainty through a model of plastic flows in Austria in 2005. In this paper, Lupton characterizes uncertainty of model parameters as normal distributions. I expand on this approach by generalising it to UMIS specified data and allowing for model parameters to be specified using log-normal distributions also.
+
+\section{Aims}
+Below are the aims for this dissertation:
+
+\begin{enumerate}
+    \item Investigate literature in propagating uncertainty through industrial ecology models
+    \item Develop a program to create a model from UMIS formatted data and propagate uncertainty through it
+    \item Add support for representing uncertainty through normal, log-normal and uniform distributions
+    \item Evaluate the accuracy and performance of the program
+\end{enumerate}
 \begin{comment}
+
+Uncertainty
+    - Why is it important to show uncertainty?
+        - 
+    - What are the methods for showing uncertainty?
+    - Why is it important to hav a flexible method for showing uncertainty?
+    - Need to show uncertainty
+        - All studies are used to inform decision making
+        - As such uncertainty has been the subject of various literature reviews in the fields of IOA, MFA and LCA, cite cite cite
+        - Impairs reliability
+        - Important when considering results
+        - Can determine if results are significant compared to uncertainty
+        - Environmental impacts and indicators are often calculated directly from    values, need to have accurate uncertainty around those values in order to   confidently talk about environmental impact
+    - Sources of uncertainty
+        Because IE studies often work on an average (i.e average amount of copper, average amount of zinc flowing through)
+        
+        read this one, take notes, read the lca one quickly, take notes, see how IOA one is important
+    - Methods of dealing with and calculating uncertainty
+        - Talk about 2 things that aren't related to probabilistic
+        - Talk about the Fuzzy set theory, sensitivity analysis, stan, probabilistic and then lupton and then say where mine fits in 
+    - Reliability scores (talk in regards to STAFDB and UMIS, ecoinvent scores)
+        - Useful when integrating data from across studies
+        - Need for lognormal
+        - Need to ensure that consistency is kept according to the later laner paper
+  
  - Transformation processes have only one outflow
  - Visualized here as a matrix
 - Metabolism of Cities
@@ -328,14 +441,15 @@ UMIS also deals with the divergent dissagregation problem present in processes a
   - Talk about stafdb
  - You're focusing on how this thing is relevant
  -  
- - Metabolism of Cities
+- Metabolism of Cities
 - Uncertainty
     - Uncertainty scores
     - Ecoinvent
     - Need to be able to flexibly support different forms of uncertainty
    
 - No work as of yet has been done to use UMIS as a feed in for a computational model
-- Uncertainty
+-   
+    
 - Show how data referenced in UMIS can be referenced in databases and computational models
     - 
 - What is the project topic or problem being investigated?
@@ -360,7 +474,29 @@ UMIS also deals with the divergent dissagregation problem present in processes a
  - Pymc3
   - Lupton
   - Cencic/Stan
+  - Cencic offer simplex algorithms as a way for automatically constructing the model but do not implement a program to do so
   - Bayesian Inference
+  - A fuzzy set-based approach to data reconciliation in material flow modeling,
+        - Can talk about this, can suggest that using probability distributions is better because fuzzy sets have trapezoidal and triangular membership functions which can be modelled as distributions if you use pymc3 correctly
+  - we want a genral approach to specifying the outputs of the model
+  - For execution, a low level of sample acceptance is indicative of a mistake when describing the system, therefore the system must be re-described
+  - Execution, umis as classes (decisions)
+  - Evaluation - turn graedal diagram into UMIS diagram
+  - Evaluation - Lognormal, does that work
+  
+  - So its good that you've studied this stuff because you'll want to talk about it in the technical thing
+  - First read other technical things and see if they are similar
+  - I think for the technical thing the topics are
+    - AISHA, read that to see if they indicated a good way to explain the ways that   they built the constraints automatically
+    - Fuzzy set theory method 
+    - STAN method
+    - Mathematical MFA method
+    - Sensitivity analysis method
+    - Probabilistic MFA, what I use
+    - Monte Carlo Markov Chains
+    - No-U-Turn, metropolis hastings
+    - Pymc3
+    
 \end{comment}
 This chapter is intended to describe the technical basis on which execution
 of the project depends.  The goal is to provide a detailed explanation of
@@ -397,20 +533,6 @@ an algorithm, or experiment), including any rationale or decisions made,
 and the other will discuss how this design was realised via some form of 
 implementation.  
 
-This is, of course, far from ideal for {\em many} project topics.  Some
-situations which clearly require a different approach include:
-
-\begin{itemize}
-\item In a project where asymptotic analysis of some algorithm is the goal,
-      there is no real ``design and implementation'' in a traditional sense
-      even though the activity of analysis is clearly within the remit of
-      this chapter.
-\item In a project where analysis of some results is as major, or a more
-      major goal than the implementation that produced them, it might be
-      sensible to merge this chapter with the next one: the main activity 
-      is such that discussion of the results cannot be viewed separately.
-\end{itemize}
-
 \noindent
 Note that it is common to include evidence of ``best practice'' project 
 management (e.g., use of version control, choice of programming language 
@@ -419,62 +541,6 @@ is useful and/or informative in some way: for example, if there was a
 decision to be made then explain the trade-offs and implications 
 involved.
 
-\section{Example Section}
-
-This is an example section; 
-the following content is auto-generated dummy text.
-\lipsum
-
-\subsection{Example Sub-section}
-
-
-
-\begin{table}[t]
-\centering
-\begin{tabular}{|cc|c|}
-\hline
-foo      & bar      & baz      \\
-\hline
-$0     $ & $0     $ & $0     $ \\
-$1     $ & $1     $ & $1     $ \\
-$\vdots$ & $\vdots$ & $\vdots$ \\
-$9     $ & $9     $ & $9     $ \\
-\hline
-\end{tabular}
-\caption{This is an example table.}
-\label{tab}
-\end{table}
-
-\begin{algorithm}[t]
-\For{$i=0$ {\bf upto} $n$}{
-  $t_i \leftarrow 0$\;
-}
-\caption{This is an example algorithm.}
-\label{alg}
-\end{algorithm}
-
-\begin{lstlisting}[float={t},caption={This is an example listing.},label={lst},language=C]
-for( i = 0; i < n; i++ ) {
-  t[ i ] = 0;
-}
-\end{lstlisting}
-
-This is an example sub-section;
-the following content is auto-generated dummy text.
-Notice the examples in Figure~\ref{fig}, Table~\ref{tab}, Algorithm~\ref{alg}
-and Listing~\ref{lst}.
-\lipsum
-
-\subsubsection{Example Sub-sub-section}
-
-This is an example sub-sub-section;
-the following content is auto-generated dummy text.
-\lipsum
-
-\paragraph{Example paragraph.}
-
-This is an example paragraph; note the trailing full-stop in the title,
-which is intended to ensure it does not run into the text.
 
 % -----------------------------------------------------------------------------
 
