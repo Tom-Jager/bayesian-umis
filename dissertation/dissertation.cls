@@ -132,6 +132,12 @@
 
 \pagestyle{plain}
 \linespread{1.3}
+
+% redefine enumerate env for closer spacing
+\renewenvironment{enumerate}%
+  {\begin{list}{\arabic{enumi}.}%
+     {\topsep=0in\itemsep=0.1in\parsep=0in\partopsep=0in\usecounter{enumi}}%
+   }{\end{list}}
 % -----------------------------------------------------------------------------
 
 % define macro to generate UoB title page
