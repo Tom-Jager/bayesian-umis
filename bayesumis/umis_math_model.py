@@ -22,8 +22,8 @@ from bayesumis.umis_data_models import (
     LognormalUncertainty,
     NormalUncertainty,
     Material,
+    ProcessOutflows,
     Staf,
-    StockValue,
     Timeframe,
     UmisProcess,
     Uncertainty,
@@ -47,7 +47,7 @@ class UmisMathModel():
     def __init__(
             self,
             external_inflows: Set[Flow],
-            process_stafs_dict: Dict[UmisProcess, Set[Staf]],
+            process_stafs_dict: Dict[UmisProcess, ProcessOutflows],
             external_outflows: Set[Flow],
             reference_material: Material,
             reference_time: Timeframe,
@@ -362,7 +362,7 @@ class UmisMathModel():
         input_matrix = T.zeros((num_processes, input_matrix_width))
 
         for process_id, inputs in \
-                self.__input_priors.external_inputs_dict.items():
+                self.__input_priors.inputs_dict.items():
 
             process_index = self.__id_math_process_dict[process_id].process_ind
 
@@ -396,7 +396,7 @@ class UmisMathModel():
 
                     origin_id = flow.origin_process.diagram_id
                     destination_id = flow.destination_process.diagram_id
-                    
+
                     self.__add_staf_as_input_prior(
                         origin_id,
                         destination_id,
@@ -442,7 +442,7 @@ class UmisMathModel():
 
     def __create_math_processes(
             self,
-            process_stafs_dict: Dict[str, Set[Staf]],
+            process_stafs_dict: Dict[str, ProcessOutflows],
             external_outflows: Set[Flow]):
         """
         Generates the math models of processes from stocks and flows
@@ -464,7 +464,7 @@ class UmisMathModel():
 
     def __create_math_processes_from_internal_flows(
             self,
-            process_stafs_dict: Dict[str, Set[Staf]]):
+            process_stafs_dict: Dict[str, ProcessOutflows]):
         """
         Take the flows and creates internal_flows from them
 
@@ -474,38 +474,44 @@ class UmisMathModel():
             outflows
         """
 
-        for _, stafs in process_stafs_dict.items():
+        for _, process_outflows in process_stafs_dict.items():
 
-            for staf in stafs:
+            for flow in process_outflows.flows:
                 # Checks flow is about correct reference time
-                if staf.staf_reference.time == self.reference_time:
+                if flow.staf_reference.time == self.reference_time:
 
-                    value = staf.get_value(self.reference_material)
+                    value = flow.get_value(self.reference_material)
                     # Checks flow has an entry for the reference material
                     if(value is None):
-                        print("Staf: {} has no value".format(staf.name))
-                        
-                    if value:
+                        print("Staf: {} has no value".format(flow.name))
+                        # TODO do material reconciliation stuff
+                        continue
+
+                    else:
 
                         # TODO Unit reconciliation
                         # Would involve getting value and checking unit
+                        self.__create_math_processes_from_staf(flow)
 
-                        if isinstance(value, StockValue):
+            if process_outflows.stock is not None:
+                stock = process_outflows.stock
 
-                            if value.stock_type == 'Net':
-                                self.__create_math_processes_from_staf(staf)
+                if stock.staf_reference.time == self.reference_time:
 
-                            else:
-                                # Doesn't support using data from total
-                                # stock values
-                                continue
+                    value = stock.get_value(self.reference_material)
 
-                        else:
-                            self.__create_math_processes_from_staf(staf)
+                    if (value is None):
+                        print("Stock {} has no value for reference material"
+                              .format(stock.name))
 
                     else:
-                        # TODO do material reconciliation stuff
-                        continue
+                        if value.stock_type == 'Net':
+                            self.__create_math_processes_from_staf(stock)
+
+                        else:
+                            # Doesn't support using data from total
+                            # stock values
+                            continue
 
     def __create_math_processes_from_external_outflows(
             self,
@@ -762,21 +768,59 @@ class UmisMathModel():
             values
         """
 
-        for origin_process, stafs in process_stafs_dict.items():
+        for origin_process, process_outflows in process_stafs_dict.items():
 
-            for staf in stafs:
+            for flow in process_outflows.flows:
                 # Checks flow is about correct reference time
-                if staf.staf_reference.time == self.reference_time:
+                if flow.staf_reference.time == self.reference_time:
 
-                    value = staf.get_value(self.reference_material)
+                    value = flow.get_value(self.reference_material)
                     # Checks flow has an entry for the reference material
                     if value:
-                        
+
                         origin_id = origin_process.diagram_id
                         # TODO Unit reconciliation
                         # Would involve getting value and checking unit
-                        
-                        destination_id = staf.destination_process.diagram_id
+
+                        destination_id = flow.destination_process.diagram_id
+
+                        uncertainty = value.uncertainty
+
+                        normal_staf_obs, lognormal_staf_obs = \
+                            self.__add_staf_observation(
+                                origin_id,
+                                destination_id,
+                                uncertainty,
+                                normal_staf_obs,
+                                lognormal_staf_obs)
+
+                        staf_prior = StafPrior(
+                            origin_id,
+                            destination_id,
+                            uncertainty)
+
+                        staf_priors.append(staf_prior)
+
+                    else:
+                        # TODO do material reconciliation stuff
+                        continue
+
+            if process_outflows.stock is not None:
+                stock = process_outflows.stock
+
+                # Checks stock is about correct reference time
+                if stock.staf_reference.time == self.reference_time:
+
+                    value = stock.get_value(self.reference_material)
+                    # Checks stock has an entry for the reference material and
+                    # is a net stock value
+                    if value and value.stock_type == 'Net':
+
+                        origin_id = origin_process.diagram_id
+                        # TODO Unit reconciliation
+                        # Would involve getting value and checking unit
+
+                        destination_id = stock.destination_process.diagram_id
 
                         uncertainty = value.uncertainty
 
@@ -785,7 +829,8 @@ class UmisMathModel():
                                 origin_id,
                                 destination_id,
                                 uncertainty)
-                        else:        
+
+                        else:
                             normal_staf_obs, lognormal_staf_obs = \
                                 self.__add_staf_observation(
                                     origin_id,
@@ -800,10 +845,6 @@ class UmisMathModel():
                                 uncertainty)
 
                             staf_priors.append(staf_prior)
-
-                    else:
-                        # TODO do material reconciliation stuff
-                        continue
 
         return staf_priors, normal_staf_obs, lognormal_staf_obs
 
@@ -1089,7 +1130,7 @@ class MathDistributionProcess(MathProcess):
 
         if (self.n_outflows == 0):
             print("Process with id: {}, has no outflows"
-            .format(self.process_id))
+                  .format(self.process_id))
             return [], 0
 
         if not dist_coeffs:
@@ -1106,7 +1147,6 @@ class MathDistributionProcess(MathProcess):
                 "Must supply a transfer_coefficient for each outflow or None")
 
         if self.n_outflows == 1:
-            (outflow_process_id, ) = self.outflow_process_ids
             random_variable = pm.Deterministic(
                 "P_{}".format(self.process_id), T.ones(1,))
 
@@ -1195,9 +1235,9 @@ class MathTransformationProcess(MathProcess):
 
         if (self.n_outflows == 0):
             print("Process with id: {}, has no outflows"
-            .format(self.process_id))
+                  .format(self.process_id))
             return [], 0
-        
+
         if self.n_outflows == 1:
             random_variable = pm.Deterministic(
                 "P_{}".format(
@@ -1432,13 +1472,13 @@ class InputPriors():
 
     Attributes
     ---------------
-    external_inputs_dict (dict(str, list(stafPrior)): Maps the process id to
+    inputs_dict (dict(str, list(stafPrior)): Maps the process id to
         its inputs from external processes
     """
 
     def __init__(self):
 
-        self.external_inputs_dict: Dict[str, list(StafPrior)] = {}
+        self.inputs_dict: Dict[str, list(StafPrior)] = {}
 
     def add_external_input(self, process_id: str, input_prior: StafPrior):
         """
@@ -1452,10 +1492,10 @@ class InputPriors():
         assert isinstance(process_id, str)
         assert isinstance(input_prior, StafPrior)
 
-        if self.external_inputs_dict.__contains__(process_id):
-            self.external_inputs_dict[process_id].append(input_prior)
+        if self.inputs_dict.__contains__(process_id):
+            self.inputs_dict[process_id].append(input_prior)
         else:
-            self.external_inputs_dict[process_id] = [input_prior]
+            self.inputs_dict[process_id] = [input_prior]
 
     def get_width_of_input_matrix(self):
         """
@@ -1464,7 +1504,7 @@ class InputPriors():
         """
         max_width = 0
 
-        for inputs in self.external_inputs_dict.values():
+        for inputs in self.inputs_dict.values():
             if inputs.__len__() > max_width:
                 max_width = inputs.__len__()
 
@@ -1474,7 +1514,7 @@ class InputPriors():
         """
         Gets the input priors for a destination process
         """
-        input_list = self.external_inputs_dict.get(destination_id)
+        input_list = self.inputs_dict.get(destination_id)
         return input_list
 
 

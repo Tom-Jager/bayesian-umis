@@ -1,0 +1,158 @@
+\begin{thebibliography}{10}
+
+\bibitem{white1994greening}
+Preface.
+\newblock In Deanna~J Richards, Braden~R Allenby, et~al., editors, {\em The
+  greening of industrial ecosystems}. National Academies Press, 1994.
+
+\bibitem{brunner2004practical}
+Paul~H Brunner and Helmut Rechberger.
+\newblock Practical handbook of material flow analysis.
+\newblock {\em The International Journal of Life Cycle Assessment},
+  9(5):337--338, 2004.
+
+\bibitem{chen2016building}
+Wei-Qiang Chen, Thomas~E Graedel, Philip Nuss, and Hajime Ohno.
+\newblock Building the material flow networks of aluminum in the 2007 us
+  economy.
+\newblock {\em Environmental science \& technology}, 50(7):3905--3912, 2016.
+
+\bibitem{danius2001regional}
+Lena Danius and Fredrik Burstr{\"o}m.
+\newblock Regional material flow analysis and data uncertainties: can the
+  results be trusted.
+\newblock In {\em Proceedings of 15th International Symposium on Informatics
+  for Environmental Protection, Zurich (Switzerland)}, pages 10--12, 2001.
+
+\bibitem{esty1998industrial}
+Daniel~C Esty and Michael~E Porter.
+\newblock Industrial ecology and competitiveness: Strategic implications for
+  the firm.
+\newblock {\em Journal of Industrial Ecology}, 2(1):35--43, 1998.
+
+\bibitem{MetabolismOfCities}
+Paul~Hoekman et~al.
+\newblock Metabolism of cities.
+
+\bibitem{ferson1996different}
+Scott Ferson and Lev~R Ginzburg.
+\newblock Different methods are needed to propagate ignorance and variability.
+\newblock {\em Reliability Engineering \& System Safety}, 54(2-3):133--144,
+  1996.
+
+\bibitem{hedbrant2001data}
+J~Hedbrant and L~S{\"o}rme.
+\newblock Data vagueness and uncertainties in urban heavy-metal data
+  collection.
+\newblock {\em Water, Air and Soil Pollution: Focus}, 1(3-4):43--53, 2001.
+
+\bibitem{heijungs2004review}
+Reinout Heijungs and Mark~AJ Huijbregts.
+\newblock A review of approaches to treat uncertainty in lca.
+\newblock 2004.
+
+\bibitem{hertwich2018nullius}
+Edgar Hertwich, Niko Heeren, Brandon Kuczenski, Guillaume Majeau-Bettez,
+  Rupert~J Myers, Stefan Pauliuk, Konstantin Stadler, and Reid Lifset.
+\newblock Nullius in verba 1: Advancing data transparency in industrial
+  ecology.
+\newblock {\em Journal of Industrial Ecology}, 22(1):6--17, 2018.
+
+\bibitem{ISO14040}
+{The New International Standards for Life Cycle Assessment}.
+\newblock Standard, International Organization for Standardization (ISO),
+  Geneva, CH, 2006.
+
+\bibitem{laner2016novel}
+David Laner, Julia Feketitsch, Helmut Rechberger, and Johann Fellner.
+\newblock A novel approach to characterize data uncertainty in material flow
+  analysis and its application to plastics flows in austria.
+\newblock {\em Journal of Industrial Ecology}, 20(5):1050--1063, 2016.
+
+\bibitem{laner2014systematic}
+David Laner, Helmut Rechberger, and Thomas Astrup.
+\newblock Systematic evaluation of uncertainty in material flow analysis.
+\newblock {\em Journal of Industrial Ecology}, 18(6):859--870, 2014.
+
+\bibitem{lupton2018incremental}
+Richard~C Lupton and Julian~M Allwood.
+\newblock Incremental material flow analysis with bayesian inference.
+\newblock {\em Journal of Industrial Ecology}, 22(6):1352--1364, 2018.
+
+\bibitem{mattila2012methodological}
+Tuomas Mattila, Suvi Lehtoranta, Laura Sokka, Matti Melanen, and Ari Nissinen.
+\newblock Methodological aspects of applying life cycle assessment to
+  industrial symbioses.
+\newblock {\em Journal of Industrial Ecology}, 16(1):51--60, 2012.
+
+\bibitem{müller2014modeling}
+Esther Müller, Lorenz~M Hilty, Rolf Widmer, Mathias Schluep, and Martin
+  Faulstich.
+\newblock Modeling metal stocks and flows: a review of dynamic material flow
+  analysis methods.
+\newblock {\em Environmental science \& technology}, 48(4):2102--2113, 2014.
+
+\bibitem{ystafdb}
+Reck B.K. Hopple J.A. Baker M.S. Nassar~N.T. Myers, R.J. and T.E. Graedel.
+\newblock Yale stocks and flows database (ystafdb) describing anthropogenic
+  materials cycles, recycling, and criticality for 102 materials on spatial
+  scales ranging from suburbs to global and timescales from the early 1800s to
+  circa 2013, 2019.
+
+\bibitem{myers2019unified}
+Rupert~J Myers, Tomer Fishman, Barbara~K Reck, and TE~Graedel.
+\newblock Unified materials information system (umis): An integrated material
+  stocks and flows data structure.
+\newblock {\em Journal of Industrial Ecology}, 23(1):222--240, 2019.
+
+\bibitem{pauliuk2016prospective}
+Stefan Pauliuk and Edgar~G Hertwich.
+\newblock Prospective models of society’s future metabolism: what industrial
+  ecology has to contribute.
+\newblock In {\em Taking stock of industrial ecology}, pages 21--43. Springer,
+  Cham, 2016.
+
+\bibitem{pauliuk2015general}
+Stefan Pauliuk, Guillaume Majeau-Bettez, and Daniel~B M{\"u}ller.
+\newblock A general system structure and accounting framework for socioeconomic
+  metabolism.
+\newblock {\em Journal of Industrial Ecology}, 19(5):728--741, 2015.
+
+\bibitem{robert2005sustainable}
+Kates~W Robert, Thomas~M Parris, and Anthony~A Leiserowitz.
+\newblock What is sustainable development? goals, indicators, values, and
+  practice.
+\newblock {\em Environment: science and policy for sustainable development},
+  47(3):8--21, 2005.
+
+\bibitem{rockstrom2009safe}
+Johan Rockstr{\"o}m, Will Steffen, Kevin Noone, {\AA}sa Persson, F~Stuart
+  Chapin~III, Eric~F Lambin, Timothy~M Lenton, Marten Scheffer, Carl Folke,
+  Hans~Joachim Schellnhuber, et~al.
+\newblock A safe operating space for humanity.
+\newblock {\em nature}, 461(7263):472, 2009.
+
+\bibitem{temursho201712}
+Umed Temursho.
+\newblock 12. uncertainty treatment in input--output analysis.
+\newblock {\em Handbook of Input--Output Analysis}, page 407, 2017.
+
+\bibitem{tibbs1992industrial}
+HBC Tibbs.
+\newblock Industrial ecology.
+\newblock {\em Whole earth review}, 7:4--19, 1992.
+
+\bibitem{weidema1996data}
+Bo~Pedersen Weidema and Marianne~Suhr Wesnaes.
+\newblock Data quality management for life cycle inventories—an example of
+  using data quality indicators.
+\newblock {\em Journal of cleaner production}, 4(3-4):167--174, 1996.
+
+\bibitem{wernet2016ecoinvent}
+Gregor Wernet, Christian Bauer, Bernhard Steubing, J{\"u}rgen Reinhard, Emilia
+  Moreno-Ruiz, and Bo~Weidema.
+\newblock The ecoinvent database version 3 (part i): overview and methodology.
+\newblock {\em The International Journal of Life Cycle Assessment},
+  21(9):1218--1230, 2016.
+
+\end{thebibliography}

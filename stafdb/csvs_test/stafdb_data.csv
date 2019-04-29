@@ -1,4 +1,5 @@
 quantity,unit,material_id,name,staf_id,stock_type,uncertainty_json
 100.0,g,1,Data_M:1_Q:100.0,1,Flow,"{""distribution"": ""Normal"", ""mean"": 100.0, ""standard_deviation"": 10.0}"
-30.0,g,1,Data_M:1_Q:30.0,2,Net,"{""distribution"": ""Normal"", ""mean"": 70.0, ""standard_deviation"": 3.0}"
-70.0,g,1,Data_M:1_Q:70.0,3,Flow,"{""distribution"": ""Uniform"", ""lower"": 0.0, ""upper"": 500.0}"
+30.0,g,1,Data_M:1_Q:30.0,2,Net,"{""distribution"": ""Uniform"", ""lower"": 0.0, ""upper"": 500.0}"
+70.0,g,1,Data_M:1_Q:70.0,3,Flow,"{""distribution"": ""Normal"", ""mean"": 170.0, ""standard_deviation"": 3.0}"
+

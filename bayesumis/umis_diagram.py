@@ -5,9 +5,10 @@ from typing import Dict, Set
 from .umis_data_models import (
     DiagramReference,
     Flow,
-    UmisProcess,
+    ProcessOutflows,
     Staf,
-    Stock
+    Stock,
+    UmisProcess
 )
 
 
@@ -51,7 +52,7 @@ class UmisDiagram():
 
         self.reference = DiagramReference()
 
-        self.__process_stafs_dict: Dict[UmisProcess, Set[Staf]] = {}
+        self.__process_stafs_dict: Dict[UmisProcess, ProcessOutflows] = {}
 
         self.__add_internal_stafs(internal_stafs)
 
@@ -75,14 +76,31 @@ class UmisDiagram():
 
             origin_process = staf.origin_process
             if origin_process not in self.__process_stafs_dict:
-                self.__process_stafs_dict[origin_process] = set()
+                self.__process_stafs_dict[origin_process] = ProcessOutflows()
 
-            self.__process_stafs_dict[origin_process].add(staf)
+            if isinstance(staf, Stock):
+                if (self.__process_stafs_dict[origin_process].stock is None):
+                    self.__process_stafs_dict[origin_process].stock = staf
+                else:
+                    raise ValueError("Cannot add stock {} as process {}"
+                                     .format(staf, origin_process)
+                                     + " already has a stock assigned")
+
+            else:
+                if isinstance(staf, Flow):
+                    self.__process_stafs_dict[origin_process].flows.add(staf)
+                else:
+                    raise TypeError("Staf {} is of wrong type, expected Stock"
+                                    .format(staf)
+                                    + " or Flow, found {} instead"
+                                    .format(type(staf)))
 
             dest_process = staf.destination_process
             if dest_process not in self.__process_stafs_dict:
-                self.__process_stafs_dict[dest_process] = set()
+                self.__process_stafs_dict[dest_process] = ProcessOutflows
 
+            # This is where we would update the diagram reference space, 
+            # material and time to reflect the entire diagram
             self.__update_diagram_reference(
                 staf.staf_reference.time,
                 staf.staf_reference.material,
@@ -109,7 +127,7 @@ class UmisDiagram():
 
             dest_process = flow.destination_process
             if dest_process not in self.__process_stafs_dict:
-                self.__process_stafs_dict[dest_process] = set()
+                self.__process_stafs_dict[dest_process] = ProcessOutflows()
 
             self.__external_inflows.add(flow)
 
@@ -146,40 +164,6 @@ class UmisDiagram():
                 flow.origin_process.reference_space,
                 flow.destination_process.reference_space)
 
-    def __add_staf(self, staf: Staf):
-        """
-        Adds staf to process_stafs_dict
-
-        Args
-        ---------
-        staf (Staf)
-        """
-        origin_process = staf.origin_process
-        if origin_process not in self.__process_stafs_dict:
-            self.__process_stafs_dict[origin_process] = set()
-        
-        self.__process_stafs_dict[origin_process].add(staf)
-
-    def __add_stocks(self, stocks: Set[Stock]):
-        """ Add stocks to processes in diagram """
-
-        for stock in stocks:
-            if not isinstance(stock, Stock):
-                raise TypeError(
-                    "Expected type Stock, was {} instead".format(type(stock)))
-
-            stock_process = stock.stock_process
-            
-            if stock_process not in self.__process_stafs_dict:
-                self.__process_stafs_dict[stock_process] = set()
-
-            self.__process_stafs_dict[stock_process].add(stock)
-            
-            self.__update_diagram_reference(
-                stock.staf_reference.time,
-                stock.staf_reference.material,
-                stock.stock_process.reference_space)
-
     def __check_flow_type(self, flow):
         """
         Type checks flow
@@ -202,7 +186,7 @@ class UmisDiagram():
 
     def get_process_stafs_dict(self):
         """
-        Returns process outflows dict
+        Returns process stafs dict
         """
         return self.__process_stafs_dict
 
