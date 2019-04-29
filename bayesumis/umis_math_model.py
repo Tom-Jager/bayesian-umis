@@ -107,29 +107,29 @@ class UmisMathModel():
         lognormal_staf_matrix, lognormal_staf_means, lognormal_staf_sds = \
             self.__create_staf_obs_matrices(lognormal_staf_obs)
 
-        # Ricks Model
-        with pm.Model() as self.pm_model:
-            num_processes = len(self.__id_math_process_dict.keys())
+        # # Ricks Model
+        # with pm.Model() as self.pm_model:
+        #     num_processes = len(self.__id_math_process_dict.keys())
 
-            tc_matrix = self.__create_transfer_coefficient_matrix(
-                transformation_coeff_obs,
-                distribution_coeff_obs)
+        #     tc_matrix = self.__create_transfer_coefficient_matrix(
+        #         transformation_coeff_obs,
+        #         distribution_coeff_obs)
 
-            tc_matrix = pm.Deterministic(self.TC_VAR_NAME, tc_matrix)
+        #     tc_matrix = pm.Deterministic(self.TC_VAR_NAME, tc_matrix)
 
-            input_matrix = self.__create_input_matrix()
+        #     input_matrix = self.__create_input_matrix()
 
-            input_matrix = pm.Deterministic(self.INPUT_VAR_NAME, input_matrix)
+        #     input_matrix = pm.Deterministic(self.INPUT_VAR_NAME, input_matrix)
 
-            input_sums = T.sum(input_matrix, axis=1)
+        #     input_sums = T.sum(input_matrix, axis=1)
 
-            process_throughputs = T.dot(
-                matrix_inverse(T.eye(num_processes) - tc_matrix.T),
-                input_sums[:, None])
+        #     process_throughputs = T.dot(
+        #         matrix_inverse(T.eye(num_processes) - tc_matrix.T),
+        #         input_sums[:, None])
 
-            stafs = pm.Deterministic(
-                self.STAF_VAR_NAME,
-                tc_matrix * process_throughputs[:, None])
+        #     stafs = pm.Deterministic(
+        #         self.STAF_VAR_NAME,
+        #         tc_matrix * process_throughputs[:, None])
 
         # Toms Model1
         # with pm.Model() as self.pm_model:
