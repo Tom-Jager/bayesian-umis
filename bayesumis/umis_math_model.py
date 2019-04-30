@@ -217,9 +217,9 @@ class UmisMathModel():
 
                 pm.Lognormal(
                     'lognormal_staf_observations',
-                    mu=np.log(lognormal_staf_obs_eqs[:, None]),
+                    mu=lognormal_staf_obs_eqs[:, None],
                     sd=lognormal_staf_sds[:, None],
-                    observed=lognormal_staf_means[:, None])
+                    observed=np.exp(lognormal_staf_means[:, None]))
 
     def get_input_inds(self, staf: Staf):
         """ Gets the process index of the destination of the staf """
