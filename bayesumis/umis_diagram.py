@@ -73,22 +73,26 @@ class UmisDiagram():
         for staf in stafs:
 
             assert isinstance(staf, Staf)
-
             origin_process = staf.origin_process
+
             if origin_process not in self.__process_stafs_dict:
                 self.__process_stafs_dict[origin_process] = ProcessOutflows()
 
+            origin_process_outflows = \
+                self.__process_stafs_dict[origin_process]
+
             if isinstance(staf, Stock):
-                if (self.__process_stafs_dict[origin_process].stock is None):
-                    self.__process_stafs_dict[origin_process].stock = staf
+                if (origin_process_outflows.stock is None):
+                    origin_process_outflows.stock = staf
                 else:
                     raise ValueError("Cannot add stock {} as process {}"
                                      .format(staf, origin_process)
-                                     + " already has a stock assigned")
+                                     + " already has a stock {} assigned"
+                                     .format(origin_process_outflows.stock))
 
             else:
                 if isinstance(staf, Flow):
-                    self.__process_stafs_dict[origin_process].flows.add(staf)
+                    origin_process_outflows.flows.add(staf)
                 else:
                     raise TypeError("Staf {} is of wrong type, expected Stock"
                                     .format(staf)
@@ -97,7 +101,7 @@ class UmisDiagram():
 
             dest_process = staf.destination_process
             if dest_process not in self.__process_stafs_dict:
-                self.__process_stafs_dict[dest_process] = ProcessOutflows
+                self.__process_stafs_dict[dest_process] = ProcessOutflows()
 
             # This is where we would update the diagram reference space, 
             # material and time to reflect the entire diagram

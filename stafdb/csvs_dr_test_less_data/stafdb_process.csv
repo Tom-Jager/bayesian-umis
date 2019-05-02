@@ -1,4 +1,4 @@
-name,code,process_id_parent,is_separator,process_classification
+name,code,process_id_parent,is_separator,process_type
 TP1: Test Process 1,TP1,None,False,Distribution
 TP2: Test Process 2,TP2,None,False,Transformation
 TP3: Test Process 3,TP3,None,False,Distribution

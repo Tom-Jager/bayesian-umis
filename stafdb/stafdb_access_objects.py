@@ -129,7 +129,7 @@ class ProcessAccessObject(StafdbAccessObject):
             'code',
             'process_id_parent',
             'is_separator',
-            'process_classification'
+            'process_type'
         ] 
 
         table_path = 'stafdb_process.csv'
@@ -161,8 +161,6 @@ class ProcessAccessObject(StafdbAccessObject):
                 or process_type == 'Distribution'
                 or process_type == 'Storage')
 
-        process_classification = process_type
-
         table: pd.DataFrame = self.__load_table()
 
         process_params = [
@@ -170,7 +168,7 @@ class ProcessAccessObject(StafdbAccessObject):
             code,
             process_id_parent,
             is_separator,
-            process_classification]
+            process_type]
 
         row = pd.DataFrame([process_params], columns=self.columns)
         table = table.append(row, ignore_index=True, sort=False)

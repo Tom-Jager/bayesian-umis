@@ -3,11 +3,12 @@
 from time import time
 from typing import Dict
 
-from ..bayesumis.umis_data_models import (
+from bayesumis.umis_data_models import (
     Flow,
     Material,
     Space,
     Stock,
+    StockValue,
     StafReference,
     Timeframe,
     UmisProcess,
@@ -46,9 +47,9 @@ class DbStub():
             stafdb_id,
             name,
             reference,
-            material_val,
             origin,
-            destination)
+            destination,
+            material_val)
         print("|{}|".format(stafdb_id))
         self._flow_id_c += 1
         return flow
@@ -57,24 +58,39 @@ class DbStub():
             self,
             reference: StafReference,
             material_val: Dict[Material, Value],
-            stock_process: UmisProcess,
+            origin_process: UmisProcess,
             stock_type: str,
             name_prefix: str = ''):
 
         stafdb_id = "St{}".format(self._stock_id_c)
         name = "{}Stock{}".format(name_prefix, self._stock_id_c)
 
+        storage_process = self.get_umis_process(
+            origin_process.reference_space,
+            "Storage")
+
         stock = Stock(
             stafdb_id,
             name,
             reference,
-            material_val,
-            stock_process,
-            stock_type)
+            origin_process,
+            storage_process,
+            material_val)
 
         self._stock_id_c += 1
         print("|{}|".format(stafdb_id))
         return stock
+
+    def get_stock_value(
+            self,
+            quantity: float,
+            uncertainty: Uncertainty):
+
+        value_id = "V{}".format(self._value_id_c)
+
+        self._value_id_c += 1
+        print("|{}|".format(value_id))
+        return StockValue(value_id, quantity, uncertainty, "g", "Net")
 
     def get_umis_process(
             self,

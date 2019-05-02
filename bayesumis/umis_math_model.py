@@ -22,7 +22,7 @@ from bayesumis.umis_data_models import (
     LognormalUncertainty,
     NormalUncertainty,
     Material,
-    ProcessOutflows,
+    ProcessOutputs,
     Staf,
     Timeframe,
     UmisProcess,
@@ -47,7 +47,7 @@ class UmisMathModel():
     def __init__(
             self,
             external_inflows: Set[Flow],
-            process_stafs_dict: Dict[UmisProcess, ProcessOutflows],
+            process_stafs_dict: Dict[UmisProcess, ProcessOutputs],
             external_outflows: Set[Flow],
             reference_material: Material,
             reference_time: Timeframe,
@@ -205,9 +205,9 @@ class UmisMathModel():
 
                 pm.Normal(
                     'normal_staf_observations',
-                    mu=normal_staf_obs_eqs[:, None],
+                    mu=normal_staf_means[:, None],
                     sd=normal_staf_sds[:, None],
-                    observed=normal_staf_means[:, None])
+                    observed=normal_staf_obs_eqs[:, None])
 
             if len(lognormal_staf_means > 0):
                 lognormal_staf_obs_eqs = pm.Deterministic(
@@ -392,10 +392,11 @@ class UmisMathModel():
 
                 value = flow.get_value(self.reference_material)
 
+                origin_id = flow.origin_process.diagram_id
+                destination_id = flow.destination_process.diagram_id
+                
                 if value:
 
-                    origin_id = flow.origin_process.diagram_id
-                    destination_id = flow.destination_process.diagram_id
 
                     self.__add_staf_as_input_prior(
                         origin_id,
@@ -442,7 +443,7 @@ class UmisMathModel():
 
     def __create_math_processes(
             self,
-            process_stafs_dict: Dict[str, ProcessOutflows],
+            process_stafs_dict: Dict[str, ProcessOutputs],
             external_outflows: Set[Flow]):
         """
         Generates the math models of processes from stocks and flows
@@ -464,7 +465,7 @@ class UmisMathModel():
 
     def __create_math_processes_from_internal_flows(
             self,
-            process_stafs_dict: Dict[str, ProcessOutflows]):
+            process_stafs_dict: Dict[str, ProcessOutputs]):
         """
         Take the flows and creates internal_flows from them
 
@@ -483,8 +484,6 @@ class UmisMathModel():
                     value = flow.get_value(self.reference_material)
                     # Checks flow has an entry for the reference material
                     if(value is None):
-                        print("Staf: {} has no value".format(flow.name))
-                        # TODO do material reconciliation stuff
                         continue
 
                     else:
@@ -1129,8 +1128,6 @@ class MathDistributionProcess(MathProcess):
         assert (self.n_outflows == len(self.outflow_process_ids))
 
         if (self.n_outflows == 0):
-            print("Process with id: {}, has no outflows"
-                  .format(self.process_id))
             return [], 0
 
         if not dist_coeffs:

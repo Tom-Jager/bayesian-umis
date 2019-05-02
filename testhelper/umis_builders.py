@@ -1,17 +1,18 @@
 """ Functions to build certain types of umis_diagrams """
 # import numpy as np
 
-from ..bayesumis.umis_data_models import (
+from bayesumis.umis_data_models import (
     LognormalUncertainty,
     NormalUncertainty,
     StafReference,
     UniformUncertainty,
 )
-from ..bayesumis.umis_math_model import (
+
+from bayesumis.umis_math_model import (
     DistributionCoefficients,
     DistributionCoefficient,
     TransformationCoefficient)
-from ..testhelper.test_helper import DbStub
+from testhelper.test_helper import DbStub
 
 
 def get_umis_diagram_asymmetrical():
@@ -238,6 +239,9 @@ def get_umis_diagram_cycle():
     value_15 = test_db.get_value(15, norm_uncert_15)
     value_10 = test_db.get_value(10, norm_uncert_10)
 
+    stock_value_10 = test_db.get_stock_value(10, norm_uncert_10)
+    stock_value_15 = test_db.get_stock_value(15, norm_uncert_15)
+
     value_unknown = test_db.get_value(75, uniform_uncert_0_100)
 
     f1 = test_db.get_flow(
@@ -319,7 +323,7 @@ def get_umis_diagram_cycle():
 
     s1 = test_db.get_stock(
         reference,
-        {ref_material: value_10},
+        {ref_material: stock_value_10},
         p4,
         'Net',
         's1'
@@ -327,17 +331,17 @@ def get_umis_diagram_cycle():
 
     s2 = test_db.get_stock(
         reference,
-        {ref_material: value_15},
+        {ref_material: stock_value_15},
         p7,
         'Net',
         's2'
     )
 
     external_inflows = {f1}
-    internal_flows = {fcyc, f2, f3, f4, f5, f6, f7}
+    internal_flows = {fcyc, f2, f3, f4, f5, f6, f7, s1, s2}
     external_outflows = {f8, f9, f10}
     stocks = {s1, s2}
-    print("Cycle Stocked - Wed 14:54")
+    print("Cycle Stocked - Wed 09:23")
     return (
         external_inflows,
         internal_flows,

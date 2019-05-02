@@ -107,7 +107,7 @@ def make_estimates_dict(
         
     estimates_dict['Internal Stafs'] = {}
     for staf in internal_stafs:
-        staf_name = "Internal Staf: " + flow.name
+        staf_name = "Internal Staf: " + staf.name
         if staf.origin_process.process_type == 'Storage':
 
             staf_estimates = get_input_estimates(
@@ -117,7 +117,7 @@ def make_estimates_dict(
             staf_estimates = get_staf_estimates(
                 staf, math_model.STAF_VAR_NAME, map_estimate, math_model)
 
-            tc_name = "TC: " + flow.name
+            tc_name = "TC: " + staf.name
         
             tc_estimates = get_staf_estimates(
                 staf, math_model.TC_VAR_NAME, map_estimate, math_model)
@@ -193,3 +193,24 @@ def display_parameters(
     plot_posteriors(samples_dict)
     display_estimates(estimates_dict)
 
+
+def print_umis_diagram(res_inflows, res_dict, res_outflows):
+    for x in res_inflows:
+        print(x)
+    
+    print()
+    print()
+
+    for key, values in res_dict.items():
+        print(key)
+        for val in values.flows:
+            print(val)
+        print("stock: {}".format(values.stock))
+        print()
+        
+    print()
+    print()
+
+    for x in res_outflows:
+        print("Outflows")
+        print(x)

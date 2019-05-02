@@ -703,7 +703,7 @@ class Flow(Staf):
         return self.stafdb_id == flow_b.stafdb_id
 
 
-class ProcessOutflows():
+class ProcessOutputs():
     """
     Outflows of a process in a UmisDiagram
 
@@ -713,8 +713,9 @@ class ProcessOutflows():
     stock (Stock): Stock of material at this process
     """
 
-    flows = set()
-    stock = None
+    def __init__(self):
+        self.flows = set()
+        self.stock = None
 
 
 if __name__ == '__main__':

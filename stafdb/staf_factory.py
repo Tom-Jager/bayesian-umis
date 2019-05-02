@@ -126,7 +126,7 @@ class StafFactory():
         name = process_record['name']
         is_separator = bool(process_record['is_separator'])
         parent_name = process_record['process_id_parent']
-        process_type = process_record['process_classification']
+        process_type = process_record['process_type']
 
         process = UmisProcess(
             str(process_id),

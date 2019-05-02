@@ -1,4 +1,4 @@
-name,code,process_id_parent,is_separator,process_classification
+name,code,process_id_parent,is_separator,process_type
 Import,-----,None,False,Distribution
 "Production: Mill, Smelter, Refinery – Transformation",-----,None,False,Transformation
 "Production: Mill, Smelter, Refinery – Distribution",-----,None,False,Distribution
