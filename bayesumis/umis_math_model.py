@@ -96,7 +96,7 @@ class UmisMathModel():
 
         self.__create_input_priors(external_inflows)
 
-        staf_priors, normal_staf_obs, lognormal_staf_obs = \
+        normal_staf_obs, lognormal_staf_obs = \
             self.__create_staf_obs_and_priors(
                 process_stafs_dict,
                 external_outflows)
@@ -656,38 +656,34 @@ class UmisMathModel():
 
         Returns
         -------
-        staf_priors, normal_staf_obs, lognormal_staf_obs
+        normal_staf_obs, lognormal_staf_obs
             (tuple(
-                list(StafPrior), list(StafObservation), list(StafObservation)):
+                list(StafObservation), list(StafObservation)):
                     Updated lists of normally and lognormally distributed flow
                     observations
         """
-        staf_priors = []
         normal_staf_obs = []
         lognormal_staf_obs = []
 
-        staf_priors, normal_staf_obs, lognormal_staf_obs = \
-            self.__create_staf_obs_and_priors_from_internal_stafs(
+        normal_staf_obs, lognormal_staf_obs = \
+            self.__create_staf_obs_from_internal_stafs(
                 process_stafs_dict,
                 normal_staf_obs,
-                lognormal_staf_obs,
-                staf_priors)
+                lognormal_staf_obs)
 
-        staf_priors, normal_staf_obs, lognormal_staf_obs = \
+        normal_staf_obs, lognormal_staf_obs = \
             self.__create_staf_obs_and_priors_from_external_outflows(
                 external_outflows,
                 normal_staf_obs,
-                lognormal_staf_obs,
-                staf_priors)
+                lognormal_staf_obs)
 
-        return staf_priors, normal_staf_obs, lognormal_staf_obs
+        return normal_staf_obs, lognormal_staf_obs
 
-    def __create_staf_obs_and_priors_from_external_outflows(
+    def __create_staf_obs_from_external_outflows(
             self,
             external_outflows: Set[Flow],
             normal_staf_obs: List['StafObservation'],
-            lognormal_staf_obs: List['StafObservation'],
-            staf_priors: List['StafPrior']):
+            lognormal_staf_obs: List['StafObservation']):
         """
         Take the external outflows and creates flow observations from them
 
@@ -701,9 +697,6 @@ class UmisMathModel():
 
         lognormal_staf_obs (List[StafObservation]): List of all lognormally
             distributed flow observations
-
-        staf_priors (List[StafPrior]): List of all prior observations of staf
-            values
         """
 
         for outflow in external_outflows:
@@ -729,25 +722,17 @@ class UmisMathModel():
                             normal_staf_obs,
                             lognormal_staf_obs)
 
-                    staf_prior = StafPrior(
-                            origin_id,
-                            destination_id,
-                            uncertainty)
-
-                    staf_priors.append(staf_prior)
-
                 else:
                     # TODO do material reconciliation stuff
                     continue
 
-        return staf_priors, normal_staf_obs, lognormal_staf_obs
+        return normal_staf_obs, lognormal_staf_obs
 
-    def __create_staf_obs_and_priors_from_internal_stafs(
+    def __create_staf_obs_from_internal_stafs(
             self,
             process_stafs_dict: Dict[str, Set[Staf]],
             normal_staf_obs: List['StafObservation'],
-            lognormal_staf_obs: List['StafObservation'],
-            staf_priors: List['StafPrior']):
+            lognormal_staf_obs: List['StafObservation']):
         """
         Take the internal flows and creates staf observations from them
 
@@ -761,9 +746,6 @@ class UmisMathModel():
 
         lognormal_staf_obs (List[StafObservation]): List of all lognormally
             distributed flow observations
-
-        staf_priors (List[StafPrior]): List of all prior observations of staf
-            values
         """
 
         for origin_process, process_outflows in process_stafs_dict.items():
@@ -791,13 +773,6 @@ class UmisMathModel():
                                 uncertainty,
                                 normal_staf_obs,
                                 lognormal_staf_obs)
-
-                        staf_prior = StafPrior(
-                            origin_id,
-                            destination_id,
-                            uncertainty)
-
-                        staf_priors.append(staf_prior)
 
                     else:
                         # TODO do material reconciliation stuff
@@ -837,14 +812,7 @@ class UmisMathModel():
                                     normal_staf_obs,
                                     lognormal_staf_obs)
 
-                            staf_prior = StafPrior(
-                                origin_id,
-                                destination_id,
-                                uncertainty)
-
-                            staf_priors.append(staf_prior)
-
-        return staf_priors, normal_staf_obs, lognormal_staf_obs
+        return normal_staf_obs, lognormal_staf_obs
 
     def __create_staf_priors_matrix(
             self,
