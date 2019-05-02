@@ -4,4 +4,3 @@ theano
 matplotlib
 seaborn
 pandas
-sqlalchemy

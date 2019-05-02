@@ -205,9 +205,9 @@ class UmisMathModel():
 
                 pm.Normal(
                     'normal_staf_observations',
-                    mu=normal_staf_means[:, None],
+                    mu=normal_staf_obs_eqs[:, None],
                     sd=normal_staf_sds[:, None],
-                    observed=normal_staf_obs_eqs[:, None])
+                    observed=normal_staf_means[:, None])
 
             if len(lognormal_staf_means > 0):
                 lognormal_staf_obs_eqs = pm.Deterministic(
@@ -394,9 +394,8 @@ class UmisMathModel():
 
                 origin_id = flow.origin_process.diagram_id
                 destination_id = flow.destination_process.diagram_id
-                
-                if value:
 
+                if value:
 
                     self.__add_staf_as_input_prior(
                         origin_id,

@@ -5,7 +5,7 @@ from typing import Dict, Set
 from .umis_data_models import (
     DiagramReference,
     Flow,
-    ProcessOutflows,
+    ProcessOutputs,
     Staf,
     Stock,
     UmisProcess
@@ -52,7 +52,7 @@ class UmisDiagram():
 
         self.reference = DiagramReference()
 
-        self.__process_stafs_dict: Dict[UmisProcess, ProcessOutflows] = {}
+        self.__process_stafs_dict: Dict[UmisProcess, ProcessOutputs] = {}
 
         self.__add_internal_stafs(internal_stafs)
 
@@ -76,7 +76,7 @@ class UmisDiagram():
             origin_process = staf.origin_process
 
             if origin_process not in self.__process_stafs_dict:
-                self.__process_stafs_dict[origin_process] = ProcessOutflows()
+                self.__process_stafs_dict[origin_process] = ProcessOutputs()
 
             origin_process_outflows = \
                 self.__process_stafs_dict[origin_process]
@@ -101,7 +101,7 @@ class UmisDiagram():
 
             dest_process = staf.destination_process
             if dest_process not in self.__process_stafs_dict:
-                self.__process_stafs_dict[dest_process] = ProcessOutflows()
+                self.__process_stafs_dict[dest_process] = ProcessOutputs()
 
             # This is where we would update the diagram reference space, 
             # material and time to reflect the entire diagram
@@ -131,7 +131,7 @@ class UmisDiagram():
 
             dest_process = flow.destination_process
             if dest_process not in self.__process_stafs_dict:
-                self.__process_stafs_dict[dest_process] = ProcessOutflows()
+                self.__process_stafs_dict[dest_process] = ProcessOutputs()
 
             self.__external_inflows.add(flow)
 
