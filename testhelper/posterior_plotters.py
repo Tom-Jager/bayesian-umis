@@ -214,3 +214,20 @@ def print_umis_diagram(res_inflows, res_dict, res_outflows):
     for x in res_outflows:
         print("Outflows")
         print(x)
+
+
+def plot_var(trace, var_name, row=None, col=None):
+    if row is not None:
+        samples = trace[var_name, :, row, col]
+    else:
+        samples = trace[var_name]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, title=var_name)
+    try:
+        sns.kdeplot(samples, axes=ax)
+    except Exception as e:
+        print(e)
+        ax.hist(samples)
+    plt.show()
+

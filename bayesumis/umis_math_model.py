@@ -18,6 +18,7 @@ import theano.tensor as T
 from theano.tensor.nlinalg import matrix_inverse
 
 from bayesumis.umis_data_models import (
+    Constant,
     Flow,
     LognormalUncertainty,
     NormalUncertainty,
@@ -41,6 +42,7 @@ class UmisMathModel():
         over
     """
     INPUT_VAR_NAME = 'Inputs'
+    INPUT_CC_VAR_NAME = 'Input CCs'
     STAF_VAR_NAME = 'Stafs'
     TC_VAR_NAME = 'TCs'
 
@@ -51,10 +53,8 @@ class UmisMathModel():
             external_outflows: Set[Flow],
             reference_material: Material,
             reference_time: Timeframe,
-            transformation_coeff_obs: Dict[str, 'TransformationCoefficient']
-            = {},
-            distribution_coeff_obs: Dict[str, 'DistributionCoefficients']
-            = {}):
+            material_reconc_table: Dict[Material, Uncertainty] = {},
+            tc_observation_table: Dict[str, Dict[str, Uncertainty]] = {}):
         """
         Args
         ----
@@ -70,12 +70,6 @@ class UmisMathModel():
         external_outflows (set(flow)): The outflows from inside the model to a
             process outside the model
 
-        transformation_coeff_obs (dict(str, TransformationCoefficient)): Maps a
-            transformation process id to its transfer coefficient observation
-
-        distribution_coeff_obs (dict(str, DistributionCoefficient)): Maps a
-            distribution process id to its transfer coefficient observation
-
         reference_material (Material): The material being balanced
 
         reference_time (Timeframe): The timeframe over which the stocks and
@@ -84,6 +78,9 @@ class UmisMathModel():
 
         self.reference_material = reference_material
         self.reference_time = reference_time
+
+        self.__material_reconc_table = material_reconc_table
+        self.__tc_observation_table = tc_observation_table
         # Assigns a new index to each process
         self.__index_counter = 0
 
@@ -96,32 +93,28 @@ class UmisMathModel():
 
         self.__create_input_priors(external_inflows)
 
-        normal_staf_obs, lognormal_staf_obs = \
-            self.__create_staf_obs_and_priors(
-                process_stafs_dict,
-                external_outflows)
-
-        normal_staf_obs_matrix, normal_staf_means, normal_staf_sds = \
-            self.__create_staf_obs_matrices(normal_staf_obs)
-
-        lognormal_staf_matrix, lognormal_staf_means, lognormal_staf_sds = \
-            self.__create_staf_obs_matrices(lognormal_staf_obs)
+        self.__create_staf_observations(
+            process_stafs_dict,
+            external_outflows)
 
         # Ricks Model
         with pm.Model() as self.pm_model:
             num_processes = len(self.__id_math_process_dict.keys())
 
-            tc_matrix = self.__create_transfer_coefficient_matrix(
-                transformation_coeff_obs,
-                distribution_coeff_obs)
-
+            tc_matrix = self.__create_transfer_coefficient_matrix()
             tc_matrix = pm.Deterministic(self.TC_VAR_NAME, tc_matrix)
 
-            input_matrix = self.__create_input_matrix()
+            input_matrix, input_cc_matrix = \
+                self.__create_input_and_cc_matrices()
 
             input_matrix = pm.Deterministic(self.INPUT_VAR_NAME, input_matrix)
+            input_cc_matrix = pm.Deterministic(
+                self.INPUT_CC_VAR_NAME, input_cc_matrix)
 
-            input_sums = T.sum(input_matrix, axis=1)
+            reconciled_input_matrix = \
+                input_matrix * input_cc_matrix
+
+            input_sums = T.sum(reconciled_input_matrix, axis=1)
 
             process_throughputs = T.dot(
                 matrix_inverse(T.eye(num_processes) - tc_matrix.T),
@@ -131,95 +124,71 @@ class UmisMathModel():
                 self.STAF_VAR_NAME,
                 tc_matrix * process_throughputs[:, None])
 
-        # Toms Model1
-        # with pm.Model() as self.pm_model:
-        #     num_processes = len(self.__id_math_process_dict.keys())
+            (normal_staf_obs_matrix,
+             normal_staf_means,
+             normal_staf_sds,
+             normal_ccs) = \
+                self.__create_staf_obs_matrices_normal(
+                    self.__staf_observations.normal_staf_obs)
 
-        #     staf_matrix = self.__create_staf_priors_matrix(staf_priors)
+            (lognormal_staf_obs_matrix,
+             lognormal_staf_means,
+             lognormal_staf_sds,
+             lognormal_ccs) = \
+                self.__create_staf_obs_matrices_normal(
+                    self.__staf_observations.lognormal_staf_obs)
 
-        #     tc_matrix = self.__create_transfer_coefficient_matrix(
-        #         transformation_coeff_obs,
-        #         distribution_coeff_obs)
-
-        #     tc_matrix = pm.Deterministic('TCs', tc_matrix)
-
-        #     input_matrix = self.__create_input_matrix()
-
-        #     input_matrix = pm.Deterministic('Inputs', input_matrix)
-
-        #     input_sums = T.sum(input_matrix, axis=1)
-
-        #     internal_inflow_sum_1 = T.sum(staf_matrix, axis=0)
-
-        #     all_inflow_sum_1 = internal_inflow_sum_1[:, None] \
-        #         + input_sums[:, None]
-
-        #     staf_eqs_2 = pm.Deterministic(
-        #         'staf_eqs_2', all_inflow_sum_1[:, None] * tc_matrix)
-
-        # Toms Model2
-        # with pm.Model() as self.pm_model:
-        #     num_processes = len(self.__id_math_process_dict.keys())
-
-        #     staf_matrix = self.__create_staf_priors_matrix(staf_priors)
-
-        #     tc_matrix = self.__create_transfer_coefficient_matrix(
-        #         transformation_coeff_obs,
-        #         distribution_coeff_obs)
-
-        #     tc_matrix = pm.Deterministic('TCs', tc_matrix)
-
-        #     input_matrix = self.__create_input_matrix()
-
-        #     input_matrix = pm.Deterministic('Inputs', input_matrix)
-
-        #     input_sums = T.sum(input_matrix, axis=1)
-
-        #     internal_inflow_sum_1 = T.sum(staf_matrix, axis=0)
-
-        #     all_inflow_sum_1 = internal_inflow_sum_1[:, None] \
-        #         + input_sums[:, None]
-
-        #     staf_eqs_1 = all_inflow_sum_1[:, None] * tc_matrix
-
-        #     all_but_one_outflow_sum = T.dot(
-        #             staf_eqs_1,
-        #             T.ones((num_processes, num_processes))
-        #             - T.eye(num_processes))
-
-        #     internal_inflow_sum_2 = T.sum(staf_eqs_1, axis=0)
-
-        #     all_internal_inflow_2 = internal_inflow_sum_2[:, None] \
-        #         + input_sums[:, None]
-
-        #     staf_eqs_2 = pm.Deterministic(
-        #         'staf_eqs_2',
-        #         all_internal_inflow_2[:, None]
-        #         - all_but_one_outflow_sum)
-
+            (uniform_staf_obs_matrix,
+             uniform_staf_lower,
+             uniform_staf_upper,
+             uniform_ccs) = \
+                self.__create_staf_obs_matrices_uniform(
+                    self.__staf_observations.uniform_staf_obs)
+        
             if len(normal_staf_means > 0):
                 normal_staf_obs_eqs = pm.Deterministic(
                     'normal_staf_obs_eqs',
                     T.tensordot(
                         normal_staf_obs_matrix, stafs))
 
+                reconciled_normal_eqs = \
+                    normal_staf_obs_eqs[:, None] / normal_ccs[:, None]
+
                 pm.Normal(
                     'normal_staf_observations',
-                    mu=normal_staf_obs_eqs[:, None],
+                    mu=normal_staf_means[:, None],
                     sd=normal_staf_sds[:, None],
-                    observed=normal_staf_means[:, None])
+                    observed=reconciled_normal_eqs[:, None])
 
             if len(lognormal_staf_means > 0):
                 lognormal_staf_obs_eqs = pm.Deterministic(
                     'lognormal_staf_obs_eqs',
                     T.tensordot(
-                        lognormal_staf_matrix, stafs))
+                        lognormal_staf_obs_matrix, stafs))
+
+                reconciled_lognormal_eqs = \
+                    lognormal_staf_obs_eqs[:, None] / lognormal_ccs[:, None]
 
                 pm.Lognormal(
                     'lognormal_staf_observations',
-                    mu=lognormal_staf_obs_eqs[:, None],
+                    mu=lognormal_staf_means[:, None],
                     sd=lognormal_staf_sds[:, None],
-                    observed=np.exp(lognormal_staf_means[:, None]))
+                    observed=reconciled_lognormal_eqs[:, None])
+
+            if len(uniform_staf_lower > 0):
+                uniform_staf_obs_eqs = pm.Deterministic(
+                    'uniform_staf_obs_eqs',
+                    T.tensordot(
+                        uniform_staf_obs_matrix, stafs))
+
+                reconciled_uniform_eqs = \
+                    uniform_staf_obs_eqs[:, None] / uniform_ccs[:, None]
+
+                pm.Uniform(
+                    'uniform_staf_observations',
+                    lower=uniform_staf_lower[:, None],
+                    upper=uniform_staf_upper[:, None],
+                    observed=reconciled_uniform_eqs[:, None])
 
     def get_input_inds(self, staf: Staf):
         """ Gets the process index of the destination of the staf """
@@ -230,21 +199,14 @@ class UmisMathModel():
             raise ValueError("Process with id: {} ".format(dest_id) +
                              "is not in this math model")
 
-        dest_index = dest_math_process.process_ind
+        row_ind = dest_math_process.process_ind
 
-        input_priors_list = self.__input_priors.get_input_priors_list(dest_id)
-        if not input_priors_list:
-            raise ValueError("Process {} has no external stafs"
-                             .format(dest_id))
-        col_ind = -1
-        for i, input_prior in enumerate(input_priors_list):
-            if input_prior.origin_process_id == staf.origin_process.diagram_id:
-                col_ind = i
+        if isinstance(staf, Flow):
+            col_ind = 0
+        else:
+            col_ind = 1
 
-        if col_ind == -1:
-            raise ValueError("Inflow {} not in model".format(staf.stafdb_id))
-
-        return dest_index, col_ind
+        return row_ind, col_ind
 
     def get_process_ind(self, process_id: str):
         """ Gets the process index from process id """
@@ -278,100 +240,116 @@ class UmisMathModel():
         dest_index = dest_math_process.process_ind
         return origin_index, dest_index
 
-    def __add_staf_as_input_prior(
+    def __add_external_input_prior(
             self,
             origin_id: str,
-            destination_id: str,
-            uncertainty: Uncertainty):
+            dest_id: str,
+            staf_uncert: 'Uncertainty',
+            cc_uncert: 'Uncertainty'):
         """
         Adds a new staf observation as an input prior
 
         Args
         ------------
         origin_id (str): Diagram id of the origin of the staf value
-        destination_id (str): Diagram id of the destination of the staf value
-        uncertainty (Uncertainty): Uncertainty of the value of the observation
+        dest_id (str): Diagram id of the destination of the staf value
+        staf_uncert (Uncertainty): Prior knowledge of staf value
+        cc_uncer (Uncertainty): Prior knowledge of concentration
+            coefficient
         """
-        if destination_id not in self.__id_math_process_dict:
+        if dest_id not in self.__id_math_process_dict:
             raise ValueError("This diagram does not contain" +
                              " destination process with id {}"
-                             .format(destination_id))
+                             .format(dest_id))
 
-        input_prior = StafPrior(
-            origin_id, destination_id, uncertainty)
+        staf_prior = ParamPrior(
+            'Inflow', origin_id, dest_id, staf_uncert)
 
-        self.__input_priors.add_external_input(
-            destination_id, input_prior)
+        cc_prior = ParamPrior(
+            'Conc_Coeff',
+            origin_id,
+            dest_id,
+            cc_uncert)
 
-    def __add_staf_observation(
+        input_prior = InputPrior(staf_prior, cc_prior)
+
+        self.__input_priors.external_inputs_dict[dest_id] = input_prior
+
+    def __add_stock_input_prior(
             self,
             origin_id: str,
-            destination_id: str,
-            uncertainty: Uncertainty,
-            normal_staf_obs: List['StafObservation'],
-            lognormal_staf_obs: List['StafObservation']):
+            dest_id: str,
+            staf_uncert: 'Uncertainty',
+            cc_uncert: 'Uncertainty'):
         """
-        Creates and stores a staf observation of a stock or flow
+        Adds a new staf observation as an input prior
 
         Args
-        ---------
-        origin_id (str): Math Id of origin process of stock or flow
-        destination_id (str): Math Id of destination process of stock or flow
-        uncertainty (Uncertainty): Uncertainty around observed staf value
-
-        normal_staf_obs (List[StafObservation]): List of all normally
-            distributed flow observations
-
-        lognormal_staf_obs (List[StafObservation]): List of all lognormally
-            distributed flow observations
-
-        Returns
-        -------
-        normal_staf_obs, lognormal_staf_obs
-            (tuple(list(StafObservations), list(StafObservations)): Updated
-            lists of normally and lognormally distributed staf observations
+        ------------
+        origin_id (str): Diagram id of the origin of the staf value
+        dest_id (str): Diagram id of the destination of the staf value
+        staf_uncert (Uncertainty): Prior knowledge of staf value
+        cc_uncer (Uncertainty): Prior knowledge of concentration
+            coefficient
         """
-        if isinstance(uncertainty, UniformUncertainty):
-            return normal_staf_obs, lognormal_staf_obs
-        else:
+        if dest_id not in self.__id_math_process_dict:
+            raise ValueError("This diagram does not contain" +
+                             " destination process with id {}"
+                             .format(dest_id))
 
-            staf_ob = StafObservation(
-                    origin_id,
-                    destination_id,
-                    uncertainty.mean,
-                    uncertainty.standard_deviation)
+        staf_prior = ParamPrior(
+            'Stock Input', origin_id, dest_id, staf_uncert)
 
-            if isinstance(uncertainty, LognormalUncertainty):
-                lognormal_staf_obs.append(staf_ob)
-            else:
-                if isinstance(uncertainty, NormalUncertainty):
+        cc_prior = ParamPrior(
+            'Conc_Coeff',
+            origin_id,
+            dest_id,
+            cc_uncert)
 
-                    normal_staf_obs.append(staf_ob)
-                else:
-                    raise ValueError(
-                        "Unsupported uncertainty type")
+        input_prior = InputPrior(staf_prior, cc_prior)
 
-            return normal_staf_obs, lognormal_staf_obs
+        self.__input_priors.stock_inputs_dict[dest_id] = input_prior
 
-    def __create_input_matrix(self):
+    def __create_input_and_cc_matrices(self):
         """
-        Builds input matrix from input priors """
-        num_processes = self.__id_math_process_dict.keys().__len__()
-        input_matrix_width = self.__input_priors.get_width_of_input_matrix()
+        Builds inputs and input concentration coefficient matrices from
+        external input and stock input priors
+        """
+        num_processes = len(self.__id_math_process_dict.keys())
 
-        input_matrix = T.zeros((num_processes, input_matrix_width))
+        inputs_matrix = T.zeros((num_processes, 2))
+        cc_matrix = T.ones((num_processes, 2))
 
-        for process_id, inputs in \
-                self.__input_priors.inputs_dict.items():
+        for process_id, external_input in \
+                self.__input_priors.external_inputs_dict.items():
 
             process_index = self.__id_math_process_dict[process_id].process_ind
 
-            for i, inp in enumerate(inputs):
-                input_rv = inp.create_staf_rv()
-                input_matrix = T.set_subtensor(
-                    input_matrix[process_index, i], input_rv)
+            external_input_prior = external_input.staf_prior
+            external_input_rv = external_input_prior.create_param_rv()
+            inputs_matrix = T.set_subtensor(
+                inputs_matrix[[process_index], [0]], [external_input_rv])
 
-        return input_matrix
+            external_input_cc_prior = external_input.cc_prior
+            external_input_cc_rv = external_input_cc_prior.create_param_rv()
+            cc_matrix = T.set_subtensor(
+                cc_matrix[[process_index], [0]],
+                [external_input_cc_rv])
+
+        for process_id, stock_input in \
+                self.__input_priors.stock_inputs_dict.items():
+
+            stock_input_prior = stock_input.staf_prior
+            stock_input_rv = stock_input_prior.create_param_rv()
+            inputs_matrix = T.set_subtensor(
+                inputs_matrix[[process_index], [1]], [stock_input_rv])
+
+            stock_input_cc_prior = stock_input.cc_prior
+            stock_input_cc_rv = stock_input_cc_prior.create_param_rv()
+            cc_matrix = T.set_subtensor(
+                cc_matrix[[process_index], [1]], [stock_input_cc_rv])
+
+        return inputs_matrix, cc_matrix
 
     def __create_input_priors(self, external_inflows: Set[Flow]):
         """
@@ -387,23 +365,42 @@ class UmisMathModel():
 
         for flow in external_inflows:
 
-            flow: Flow = flow
             if flow.staf_reference.time == self.reference_time:
 
                 value = flow.get_value(self.reference_material)
 
                 origin_id = flow.origin_process.diagram_id
-                destination_id = flow.destination_process.diagram_id
+                dest_id = flow.destination_process.diagram_id
 
                 if value:
 
-                    self.__add_staf_as_input_prior(
+                    staf_uncert = value.uncertainty
+                    cc_uncert = Constant(1)
+
+                    self.__add_external_input_prior(
                         origin_id,
-                        destination_id,
-                        value.uncertainty)
+                        dest_id,
+                        staf_uncert,
+                        cc_uncert)
 
                 else:
-                    # TODO material reconciliation
+                    staf_value, cc_uncert = \
+                        self.__material_reconciliation(flow)
+
+                    if (staf_value is not None
+                            and cc_uncert is not None):
+                        
+                        staf_uncert = staf_value.uncertainty
+
+                        self.__add_external_input_prior(
+                            origin_id,
+                            dest_id,
+                            staf_uncert,
+                            cc_uncert)
+                    else:
+                        print("Inflow {} could not be reconciled"
+                              .format(flow))
+
                     continue
 
     def __create_math_process(
@@ -459,10 +456,10 @@ class UmisMathModel():
             process outside the model
         """
 
-        self.__create_math_processes_from_internal_flows(process_stafs_dict)
+        self.__create_math_processes_from_internal_stafs(process_stafs_dict)
         self.__create_math_processes_from_external_outflows(external_outflows)
 
-    def __create_math_processes_from_internal_flows(
+    def __create_math_processes_from_internal_stafs(
             self,
             process_stafs_dict: Dict[str, ProcessOutputs]):
         """
@@ -482,14 +479,14 @@ class UmisMathModel():
 
                     value = flow.get_value(self.reference_material)
                     # Checks flow has an entry for the reference material
-                    if(value is None):
-                        continue
+                    if(value is not None):
+                        self.__create_math_processes_from_staf(flow)
 
                     else:
+                        value, cc_uncert = self.__material_reconciliation(flow)
 
-                        # TODO Unit reconciliation
-                        # Would involve getting value and checking unit
-                        self.__create_math_processes_from_staf(flow)
+                        if value is not None or cc_uncert is not None:
+                            self.__create_math_processes_from_staf(flow)
 
             if process_outflows.stock is not None:
                 stock = process_outflows.stock
@@ -498,18 +495,54 @@ class UmisMathModel():
 
                     value = stock.get_value(self.reference_material)
 
-                    if (value is None):
-                        print("Stock {} has no value for reference material"
-                              .format(stock.name))
+                    if (value is not None):
+                        if value.stock_type == 'Net':
+                            self.__create_math_processes_from_staf(
+                                stock)
 
                     else:
-                        if value.stock_type == 'Net':
-                            self.__create_math_processes_from_staf(stock)
+                        value, cc_uncert = self.__material_reconciliation(
+                            stock)
 
+                        if value is not None or cc_uncert is not None:
+                            if value.stock_type == 'Net':
+                                self.__create_math_processes_from_staf(
+                                    stock)
                         else:
-                            # Doesn't support using data from total
-                            # stock values
-                            continue
+                            print("Staf {} could not be reconciled"
+                                  .format(stock))
+
+    def __create_math_processes_from_staf(self, staf: Staf):
+        """
+        Creates the math processes either side of the staf
+        """
+
+        # Stocks from the virtual reservoir are seen as inputs
+        if staf.origin_process.process_type == 'Storage':
+            return
+
+        origin_id = staf.origin_process.diagram_id
+        dest_id = staf.destination_process.diagram_id
+
+        # If origin process has not been created yet then
+        # create it
+        if (origin_id not in self.__id_math_process_dict):
+            self.__create_math_process(
+                origin_id,
+                staf.origin_process.process_type)
+
+        outflow_tc_uncert = self.__get_tc_observation(origin_id, dest_id)
+        outflow_tc = ParamPrior('TC', origin_id, dest_id, outflow_tc_uncert)
+        self.__id_math_process_dict[origin_id] \
+            .add_outflow(outflow_tc)
+
+        # If destination process has not been created yet then
+        # create it
+        if (not self.__id_math_process_dict
+                    .__contains__(dest_id)):
+            self.__create_math_process(
+                dest_id,
+                staf.destination_process.process_type)
 
     def __create_math_processes_from_external_outflows(
             self,
@@ -527,118 +560,110 @@ class UmisMathModel():
 
                 value = flow.get_value(self.reference_material)
                 # Checks flow has an entry for the reference material
-                if value:
+                if value is not None:
 
-                    # TODO Unit reconciliation
-
-                    origin_id = flow.origin_process.diagram_id
-
-                    destination_id = flow.destination_process.diagram_id
-
-                    # If origin process has not been created yet then
-                    # create it
-                    if (not self.__id_math_process_dict
-                                .__contains__(origin_id)):
-                        self.__create_math_process(
-                            origin_id,
-                            flow.origin_process.process_type)
-
-                        self.__id_math_process_dict[origin_id] \
-                            .add_outflow(destination_id)
-                    # Otherwise add the outflow to the existing process
-                    else:
-                        self.__id_math_process_dict[origin_id] \
-                            .add_outflow(destination_id)
-
-                    # If destination process has not been created yet then
-                    # create it as a storage process
-                    if (not self.__id_math_process_dict
-                                .__contains__(destination_id)):
-                        self.__create_math_process(
-                            destination_id,
-                            'Storage')
-
+                    self.__create_math_processes_from_staf(flow)
                 else:
-                    # TODO do material reconciliation stuff
-                    continue
+                    value, cc_uncert = self.__material_reconciliation(flow)
 
-    def __create_math_processes_from_staf(self, staf: Staf):
-        """
-        Creates the math processes either side of the staf
-        """
-
-        # Stocks from the virtual reservoir are seen as inputs
-        if staf.origin_process.process_type == 'Storage':
-            return
-
-        origin_id = staf.origin_process.diagram_id
-        destination_id = staf.destination_process.diagram_id
-
-        # If origin process has not been created yet then
-        # create it
-        if (not self.__id_math_process_dict
-                    .__contains__(origin_id)):
-            self.__create_math_process(
-                origin_id,
-                staf.origin_process.process_type)
-
-            self.__id_math_process_dict[origin_id] \
-                .add_outflow(destination_id)
-        # Otherwise add the outflow to the existing process
-        else:
-            self.__id_math_process_dict[origin_id] \
-                .add_outflow(destination_id)
-
-        # If destination process has not been created yet then
-        # create it
-        if (not self.__id_math_process_dict
-                    .__contains__(destination_id)):
-            self.__create_math_process(
-                destination_id,
-                staf.destination_process.process_type)
-
-    def __create_staf_obs_matrices(self, staf_obs):
+                    if value is not None or cc_uncert is not None:
+                        self.__create_math_processes_from_staf(flow)
+    
+    def __create_staf_obs_matrices_normal(self, staf_obs):
         """
         Create observation matrix to select out the flow equations we have
-            observations for
+            lognormal observations for
 
         Args
         ---------------
-        staf_obs (List[StafObservations]): Observed stock and flow values
-
+        staf_obs (list(StafObservations)): List of staf value observations
         Returns
         ---------------
         observed_staf_matrix (np.array):
             num_obs x num_processes x num_processes matrix with 1s for each
-            staf observation
+            normal staf observation
 
         means_vector (np.array): The observed means of the flow values
         sds_vector (np.array): The observed standard deviations of the flow
             values
         """
-        num_obs = staf_obs.__len__()
-        num_procs = self.__id_math_process_dict.keys().__len__()
+        num_obs = len(staf_obs)
+        num_procs = len(self.__id_math_process_dict.keys())
 
         observed_staf_matrix = np.zeros((num_obs, num_procs, num_procs))
         means_vector = np.zeros(num_obs)
         sds_vector = np.zeros(num_obs)
+        ccs_vector = np.zeros(num_obs)
 
-        for i, observation in enumerate(staf_obs):
-            origin_id = observation.origin_id
-            origin_index = self.__id_math_process_dict[origin_id].process_ind
+        for i, staf_obs in enumerate(staf_obs):
+            staf_prior = staf_obs.staf_prior
 
-            destination_id = observation.destination_id
-            destination_index = \
-                self.__id_math_process_dict[destination_id].process_ind
+            origin_id = staf_prior.origin_id
+            origin_index = \
+                self.__id_math_process_dict[origin_id].process_ind
 
-            observed_staf_matrix[i][origin_index][destination_index] = 1
+            dest_id = staf_prior.dest_id
+            dest_index = \
+                self.__id_math_process_dict[dest_id].process_ind
 
-            means_vector[i] = observation.mean
-            sds_vector[i] = observation.sd
+            observed_staf_matrix[i][origin_index][dest_index] = 1
 
-        return observed_staf_matrix, means_vector, sds_vector
+            cc_rv = staf_obs.cc_prior.create_param_rv()
 
-    def __create_staf_obs_and_priors(
+            ccs_vector[i] = cc_rv
+            means_vector[i] = staf_prior.uncertainty.mean
+            sds_vector[i] = staf_prior.uncertainty.standard_deviation
+
+        return observed_staf_matrix, means_vector, sds_vector, ccs_vector
+
+    def __create_staf_obs_matrices_uniform(self, staf_obs):
+        """
+        Create observation matrix to select out the flow equations we have
+            uniform observations for
+
+        Args
+        ---------------
+        staf_obs (list(StafObservations)): List of staf value  uniform
+            observations
+
+        Returns
+        ---------------
+        observed_staf_matrix (np.array):
+            num_obs x num_processes x num_processes matrix with 1s for each
+            normal staf observation
+
+        means_vector (np.array): The observed means of the flow values
+        sds_vector (np.array): The observed standard deviations of the flow
+            values
+        """
+        num_obs = len(staf_obs)
+        num_procs = len(self.__id_math_process_dict.keys())
+        observed_staf_matrix = np.zeros((num_obs, num_procs, num_procs))
+        lower_vector = np.zeros(num_obs)
+        upper_vector = np.zeros(num_obs)
+        ccs_vector = np.zeros(num_obs)
+
+        for i, staf_obs in enumerate(staf_obs):
+            staf_prior = staf_obs.staf_prior
+
+            origin_id = staf_prior.origin_id
+            origin_index = \
+                self.__id_math_process_dict[origin_id].process_ind
+
+            dest_id = staf_prior.dest_id
+            dest_index = \
+                self.__id_math_process_dict[dest_id].process_ind
+
+            observed_staf_matrix[i][origin_index][dest_index] = 1
+
+            cc_rv = staf_obs.cc_prior.create_param_rv()
+            ccs_vector[i] = cc_rv
+            lower_vector[i] = staf_prior.uncertainty.lower
+            upper_vector[i] = staf_prior.uncertainty.upper
+
+        return observed_staf_matrix, lower_vector, upper_vector, ccs_vector
+
+    def __create_staf_observations(
             self,
             process_stafs_dict: Dict[str, Set[Staf]],
             external_outflows: Set[Flow]):
@@ -662,28 +687,14 @@ class UmisMathModel():
                     Updated lists of normally and lognormally distributed flow
                     observations
         """
-        normal_staf_obs = []
-        lognormal_staf_obs = []
+        self.__staf_observations = StafObservations()
 
-        normal_staf_obs, lognormal_staf_obs = \
-            self.__create_staf_obs_from_internal_stafs(
-                process_stafs_dict,
-                normal_staf_obs,
-                lognormal_staf_obs)
-
-        normal_staf_obs, lognormal_staf_obs = \
-            self.__create_staf_obs_and_priors_from_external_outflows(
-                external_outflows,
-                normal_staf_obs,
-                lognormal_staf_obs)
-
-        return normal_staf_obs, lognormal_staf_obs
+        self.__create_staf_obs_from_internal_stafs(process_stafs_dict)
+        self.__create_staf_obs_from_external_outflows(external_outflows)
 
     def __create_staf_obs_from_external_outflows(
             self,
-            external_outflows: Set[Flow],
-            normal_staf_obs: List['StafObservation'],
-            lognormal_staf_obs: List['StafObservation']):
+            external_outflows: Set[Flow]):
         """
         Take the external outflows and creates flow observations from them
 
@@ -691,12 +702,6 @@ class UmisMathModel():
         ----
         process_stafs_dict (dict(str, set(Flow))): Maps a process to its
             outflows
-
-        normal_staf_obs (List[StafObservation]): List of all normally
-            distributed flow observations
-
-        lognormal_staf_obs (List[StafObservation]): List of all lognormally
-            distributed flow observations
         """
 
         for outflow in external_outflows:
@@ -707,32 +712,40 @@ class UmisMathModel():
                 value = outflow.get_value(self.reference_material)
                 # Checks flow has an entry for the reference material
                 if value:
-
-                    # TODO Unit reconciliation
-                    # Would involve getting value and checking unit
                     origin_id = outflow.origin_process.diagram_id
-                    destination_id = outflow.destination_process.diagram_id
-                    uncertainty = value.uncertainty
-
-                    normal_staf_obs, lognormal_staf_obs = \
-                        self.__add_staf_observation(
-                            origin_id,
-                            destination_id,
-                            uncertainty,
-                            normal_staf_obs,
-                            lognormal_staf_obs)
+                    dest_id = outflow.destination_process.diagram_id
+                    staf_uncert = value.uncertainty
+                    cc_uncert = Constant(1)
+                    
+                    self.__staf_observations.add_staf_observation(
+                        origin_id,
+                        dest_id,
+                        staf_uncert,
+                        cc_uncert)
 
                 else:
-                    # TODO do material reconciliation stuff
-                    continue
+                    
+                    staf_value, cc_uncert = \
+                        self.__material_reconciliation(outflow)
 
-        return normal_staf_obs, lognormal_staf_obs
+                    if (staf_value is not None
+                            and cc_uncert is not None):
+                        staf_uncert = staf_value.uncertainty
+
+                        self.__staf_observations.add_staf_observation(
+                            origin_id,
+                            dest_id,
+                            staf_uncert,
+                            cc_uncert)
+                    else:
+                        print("Outflow {} could not be reconciled"
+                              .format(outflow))
+
+                    continue
 
     def __create_staf_obs_from_internal_stafs(
             self,
-            process_stafs_dict: Dict[str, Set[Staf]],
-            normal_staf_obs: List['StafObservation'],
-            lognormal_staf_obs: List['StafObservation']):
+            process_stafs_dict: Dict[str, ProcessOutputs]):
         """
         Take the internal flows and creates staf observations from them
 
@@ -740,17 +753,11 @@ class UmisMathModel():
         ----
         process_stafs_dict (dict(str, set(Staf))): Maps a process to its
             outflows
-
-        normal_staf_obs (List[StafObservation]): List of all normally
-            distributed flow observations
-
-        lognormal_staf_obs (List[StafObservation]): List of all lognormally
-            distributed flow observations
         """
 
-        for origin_process, process_outflows in process_stafs_dict.items():
+        for origin_process, process_outputs in process_stafs_dict.items():
 
-            for flow in process_outflows.flows:
+            for flow in process_outputs.flows:
                 # Checks flow is about correct reference time
                 if flow.staf_reference.time == self.reference_time:
 
@@ -759,27 +766,37 @@ class UmisMathModel():
                     if value:
 
                         origin_id = origin_process.diagram_id
-                        # TODO Unit reconciliation
-                        # Would involve getting value and checking unit
+                        dest_id = flow.destination_process.diagram_id
 
-                        destination_id = flow.destination_process.diagram_id
+                        staf_uncert = value.uncertainty
+                        cc_uncert = Constant(1)
 
-                        uncertainty = value.uncertainty
-
-                        normal_staf_obs, lognormal_staf_obs = \
-                            self.__add_staf_observation(
-                                origin_id,
-                                destination_id,
-                                uncertainty,
-                                normal_staf_obs,
-                                lognormal_staf_obs)
-
+                        self.__staf_observations.add_staf_observation(
+                            origin_id,
+                            dest_id,
+                            staf_uncert,
+                            cc_uncert)
                     else:
-                        # TODO do material reconciliation stuff
-                        continue
 
-            if process_outflows.stock is not None:
-                stock = process_outflows.stock
+                        staf_value, cc_uncert = \
+                            self.__material_reconciliation(flow)
+
+                        if (staf_value is not None
+                                and cc_uncert is not None):
+
+                            staf_uncert = staf_value.uncertainty
+
+                            self.__staf_observations.add_staf_observation(
+                                origin_id,
+                                dest_id,
+                                staf_uncert,
+                                cc_uncert)
+                        else:
+                            print("flow {} could not be reconciled"
+                                  .format(flow))
+
+            if process_outputs.stock is not None:
+                stock = process_outputs.stock
 
                 # Checks stock is about correct reference time
                 if stock.staf_reference.time == self.reference_time:
@@ -787,42 +804,46 @@ class UmisMathModel():
                     value = stock.get_value(self.reference_material)
                     # Checks stock has an entry for the reference material and
                     # is a net stock value
-                    if value and value.stock_type == 'Net':
+                    if value is not None:
+                        cc_uncert = Constant(1)
+                    else:
+                        value, cc_uncert = self.__material_reconciliation(
+                            stock)
+
+                        if value is None or cc_uncert is None:
+                            print("Stock {} could not be reconciled"
+                                  .format(stock))
+                            continue
+
+                    if value.stock_type == 'Net':
 
                         origin_id = origin_process.diagram_id
-                        # TODO Unit reconciliation
-                        # Would involve getting value and checking unit
+                        dest_id = stock.destination_process.diagram_id
 
-                        destination_id = stock.destination_process.diagram_id
-
-                        uncertainty = value.uncertainty
+                        staf_uncert = value.uncertainty
 
                         if origin_process.process_type == 'Storage':
-                            self.__add_staf_as_input_prior(
+
+                            self.__add_stock_input_prior(
                                 origin_id,
-                                destination_id,
-                                uncertainty)
+                                dest_id,
+                                staf_uncert,
+                                cc_uncert)
 
                         else:
-                            normal_staf_obs, lognormal_staf_obs = \
-                                self.__add_staf_observation(
-                                    origin_id,
-                                    destination_id,
-                                    uncertainty,
-                                    normal_staf_obs,
-                                    lognormal_staf_obs)
+                            self.__staf_observations.add_staf_observation(
+                                origin_id,
+                                dest_id,
+                                staf_uncert,
+                                cc_uncert)
 
-        return normal_staf_obs, lognormal_staf_obs
-
-    def __create_staf_priors_matrix(
-            self,
-            staf_priors: List['StafPrior']) -> T.Variable:
+    def __create_transfer_coefficient_matrix(self) -> T.Variable:
         """
         Builds matrix with transfer coeffs represented as random variables
 
         Args
         ------------
-        transformation_coeffs_obs (dict(str, TransformationCoefficient)):
+        transformation_coeffs_obs (dict(str, ParamPrior)):
             Maps transformation process ids to an observation of its
             transfer coefficient
 
@@ -830,74 +851,21 @@ class UmisMathModel():
             Maps distribution process ids to an observation of its transfer
             coefficients
         """
-        num_of_processes = self.__id_math_process_dict.keys().__len__()
-
-        staf_priors_matrix = T.zeros((num_of_processes, num_of_processes))
-
-        np_s_p = np.zeros((num_of_processes, num_of_processes))
-
-        for staf_prior in staf_priors:
-            staf_prior: StafPrior = staf_prior
-            staf_prior_rv = staf_prior.create_staf_rv()
-
-            origin_id = staf_prior.origin_process_id
-            origin_index = self.__id_math_process_dict[origin_id].process_ind
-
-            dest_id = staf_prior.destination_process_id
-            dest_index = self.__id_math_process_dict[dest_id].process_ind
-
-            staf_priors_matrix = T.set_subtensor(
-                staf_priors_matrix[[origin_index], [dest_index]],
-                staf_prior_rv)
-
-            np_s_p[[origin_index], [dest_index]] = staf_prior.uncertainty.mean
-
-        return staf_priors_matrix
-
-    def __create_transfer_coefficient_matrix(
-            self,
-            transformation_coeffs_obs: Dict[str, 'TransformationCoefficient'],
-            distribution_coeffs_obs: Dict[str, 'DistributionCoefficients']) \
-            -> T.Variable:
-        """
-        Builds matrix with transfer coeffs represented as random variables
-
-        Args
-        ------------
-        transformation_coeffs_obs (dict(str, TransformationCoefficient)):
-            Maps transformation process ids to an observation of its
-            transfer coefficient
-
-        distribution_coeffs_obs (dict(str, DistributionCoefficients)):
-            Maps distribution process ids to an observation of its transfer
-            coefficients
-        """
-        num_of_processes = self.__id_math_process_dict.keys().__len__()
+        num_of_processes = len(self.__id_math_process_dict.keys())
 
         tc_matrix = T.zeros((num_of_processes, num_of_processes))
 
-        for process_id, math_process in self.__id_math_process_dict.items():
-            tc_observation = None
-            if isinstance(math_process, MathTransformationProcess):
-                tc_observation = transformation_coeffs_obs.get(process_id)
-
-            if isinstance(math_process, MathDistributionProcess):
-                tc_observation = distribution_coeffs_obs.get(process_id)
-
-            if tc_observation:
-                dest_process_ids, dest_rv = \
-                    math_process.create_outflow_tc_rvs(tc_observation)
-            else:
-                dest_process_ids, dest_rv = \
-                    math_process.create_outflow_tc_rvs()
+        for _, math_process in self.__id_math_process_dict.items():
+            dest_ids, dest_rvs = \
+                math_process.create_outflow_tc_rvs()
 
             origin_ind = math_process.process_ind
 
             dest_inds = [self.__id_math_process_dict[pid].process_ind
-                         for pid in dest_process_ids]
+                         for pid in dest_ids]
 
             tc_matrix = T.set_subtensor(
-                tc_matrix[[origin_ind], dest_inds], dest_rv)
+                tc_matrix[[origin_ind], dest_inds], dest_rvs)
 
         return tc_matrix
 
@@ -911,96 +879,45 @@ class UmisMathModel():
 
         return ind
 
-
-class TransformationCoefficient():
-    """
-    TC for a transformation process with storage, modelled as normally
-    distributed. TC is the proportion going to storage
-
-    Attributes
-    ------------------
-    mean (np.float): Expected value of TC
-    sd (np.float): Standard deviation of TC
-    """
-
-    def __init__(
-            self,
-            mean: float,
-            lower_uncertainty: float,
-            upper_uncertainty: float):
+    def __get_tc_observation(self, origin_id: str, dest_id: str) \
+            -> Uncertainty:
         """
-        Log shifts the mean and standard deviation values to ensure they don't
-        pass 0 or 1
+        Search tc_observation_table for TC prior
+        """
+        row = self.__tc_observation_table.get(origin_id)
+
+        if row is not None:
+            return row.get(dest_id)
+        else:
+            return None
+
+    def __material_reconciliation(self, staf: Staf):
+        """
+        If possible, reconciles the materials in the staf into the reference
+        material
 
         Args
-        -----------
-        mean (float): Expected value of TC
-        lower_uncertainty (float):  Lower uncertainty value of TC
-        upper_uncertainty (float): Upper uncertainty value of TC
+        -------
+        staf (Staf): Staf being reconciled
+
+        Returns
+        -------
+        staf_uncert, cc_uncert
+            (tuple(Uncertainty, Uncertainty)): None, None id reconciliation is
+            not possible, otherwise the uncertainty of the unreconciled staf
+            value and the uncertainty of the reconciliation coefficient
         """
-        assert isinstance(mean, float)
-        assert isinstance(lower_uncertainty, float)
-        assert isinstance(upper_uncertainty, float)
+        for material in staf.get_materials():
 
-        assert lower_uncertainty < upper_uncertainty
+            material_cc_uncert = self.__material_reconc_table.get(material)
 
-        def logit(x):
-            return -np.log(1/x - 1)
+            if material_cc_uncert is not None:
 
-        def logit_range_sd(a, b):
-            return (logit(b) - logit(a)) / 4
+                material_staf_value = staf.get_value(material)
 
-        self.mean = logit(mean)
-        self.sd = logit_range_sd(lower_uncertainty, upper_uncertainty)
+                return material_staf_value, material_cc_uncert
 
-
-class DistributionCoefficient():
-    """
-    Outflow and its transfer coefficient
-
-    Attributes
-    ----------
-    outflow_id (str): Id of receiving process for this transfer coefficient
-    transfer_coefficient (float): Value of the transfer coefficient
-    """
-
-    def __init__(self, outflow_id: str, transfer_coefficient: float):
-        """
-        Args
-        -----------
-        outflow_id (str): Id of receiving process for this transfer coefficient
-        transfer_coefficient (float):
-        """
-        assert isinstance(outflow_id, str)
-        assert isinstance(transfer_coefficient, float)
-        assert (transfer_coefficient >= 0 and transfer_coefficient <= 1)
-
-        self.outflow_id = outflow_id
-        self.transfer_coefficient = transfer_coefficient
-
-
-class DistributionCoefficients():
-    """
-    TC(s) for a distribution process modelled as a dirichlet
-    distribution
-
-    Attributes
-    -----------------
-    outflow_coefficients (List[DistributionCoefficient]):
-        Expected values of TCs
-    """
-
-    def __init__(self, outflow_coefficients: List[DistributionCoefficient]):
-        """
-        Args
-        -----------------
-        outflow_coefficients (List[DistributionCoefficient]):
-            Expected values of TCs
-        """
-
-        self.shares = [oc.transfer_coefficient for oc in outflow_coefficients]
-        self.outflow_processes = [oc.outflow_id
-                                  for oc in outflow_coefficients]
+        return None, None
 
 
 class MathProcess():
@@ -1011,8 +928,8 @@ class MathProcess():
     ------------------------
     process_id (str): Id for the process in the math model
     process_ind (int): Index of process in the matrix
-    outflow_process_ids (list(str)): Math ids of each process receiving a
-        flow
+    process_outflow_tcs (list(ParamPrior)): Prior knowledge of transfer
+        coefficients for this process
     n_outflows (int): Number of outflows of the process
     """
 
@@ -1025,15 +942,13 @@ class MathProcess():
         -----------
         process_id (str): Id for the process in the math model
         process_ind (int): Index of process in the matrix
-        outflow_process_ids (list(str)): Ids of each process receiving a
-            flow
         """
         assert isinstance(process_id, str)
         assert isinstance(process_ind, int)
 
         self.process_id = process_id
         self.process_ind = process_ind
-        self.outflow_process_ids = set()
+        self.process_outflow_tcs = []
         self.n_outflows = 0
 
 
@@ -1062,27 +977,20 @@ class MathDistributionProcess(MathProcess):
 
         super(MathDistributionProcess, self).__init__(process_id, process_ind)
 
-    def add_outflow(self, outflow_process_id: str):
+    def add_outflow(self, process_outflow_tc: 'ParamPrior'):
         """
         Add an outflow to the process
 
         Args
         -----------
-        outflow_process_id (str):
+        process_outflow_tc (ParamPrior): Prior knowledge about outflow tc
         """
-        assert isinstance(outflow_process_id, str)
+        assert isinstance(process_outflow_tc, ParamPrior)
 
-        if self.outflow_process_ids.__contains__(outflow_process_id):
-            raise ValueError(
-                "Process {} already contains outflow to process {}"
-                .format(self.process_id, outflow_process_id))
-
-        self.outflow_process_ids.add(outflow_process_id)
+        self.process_outflow_tcs.append(process_outflow_tc)
         self.n_outflows += 1
 
-    def create_outflow_tc_rvs(
-            self,
-            dist_coeffs: DistributionCoefficients = None) \
+    def create_outflow_tc_rvs(self) \
             -> Tuple[List[str], pm.Continuous]:
         """
         Create RVs for transfer coefficients for the process
@@ -1092,23 +1000,25 @@ class MathDistributionProcess(MathProcess):
         dist_coeffs (DistributionCoefficients): known transfer coefficients
         """
 
-        assert (self.n_outflows == len(self.outflow_process_ids))
+        assert (self.n_outflows == len(self.process_outflow_tcs))
 
         if (self.n_outflows == 0):
             return [], 0
 
-        if not dist_coeffs:
-            # If no coefficients supplied, model as a uniform dirichlet
-            # distribution
-            shares = np.ones(self.n_outflows, dtype=np.dtype(float))
-            outflow_process_ids = self.outflow_process_ids
-        else:
-            shares = np.array(dist_coeffs.shares)
-            outflow_process_ids = dist_coeffs.outflow_processes
+        # If no coefficients supplied, model as a uniform dirichlet
+        # distribution
+        shares = []
+        outflow_process_ids = []
+        for tc in self.process_outflow_tcs:
 
-        if(len(shares) != self.n_outflows):
-            raise ValueError(
-                "Must supply a transfer_coefficient for each outflow or None")
+            tc_uncertainty = tc.uncertainty
+            if isinstance(tc_uncertainty, Uncertainty):
+                shares.append(tc_uncertainty.mean)
+            else:
+                shares.append(1)
+
+            outflow_process_ids.append(tc.dest_id)
+        shares = np.array(shares)
 
         if self.n_outflows == 1:
             random_variable = pm.Deterministic(
@@ -1117,24 +1027,8 @@ class MathDistributionProcess(MathProcess):
         else:
             random_variable = pm.Dirichlet(
                 "P_{}".format(self.process_id), shares)
-
+        
         return outflow_process_ids, random_variable
-
-    @staticmethod
-    def transfer_functions(transfer_coeff_rv: pm.Continuous):
-        """
-        Logistic function applied to first transfer coefficient to ensure it
-        doesn't exceed 1 or fall below 0
-
-        Args
-        -----------
-        transfer_coeff_rv (pm.Continuous): RV representing transfer
-            coefficients
-        """
-        logistic_tc_1 = (T.exp(transfer_coeff_rv[0]) /
-                         1 + T.exp(transfer_coeff_rv[0]))
-
-        return T.stack(logistic_tc_1, 1 - logistic_tc_1)
 
 
 class MathTransformationProcess(MathProcess):
@@ -1162,127 +1056,86 @@ class MathTransformationProcess(MathProcess):
         super(
             MathTransformationProcess, self).__init__(process_id, process_ind)
 
-    def add_outflow(self, outflow_process_id: str):
+    def add_outflow(self, process_outflow_tc: 'ParamPrior'):
         """
         Add an outflow to the process
 
         Args
         -----------
-        outflow_process_id (str): Math id of receiving process
+        process_outflow_tc (ParamPrior): Math id of receiving process
         """
-        if self.outflow_process_ids.__contains__(outflow_process_id):
-            raise ValueError(
-                "Process {} already contains outflow to process {}"
-                .format(self.process_id, outflow_process_id))
-
         if self.n_outflows >= 2:
             raise ValueError(
                 "A transformation process can have at most 2 outflows")
 
-        self.outflow_process_ids.add(outflow_process_id)
+        self.process_outflow_tcs.append(process_outflow_tc)
         self.n_outflows += 1
 
-    def create_outflow_tc_rvs(
-            self,
-            transform_coeff: TransformationCoefficient = None) \
+    def create_outflow_tc_rvs(self) \
             -> Tuple[List[str], pm.Continuous]:
         """
-        Create RV for the transfer coefficient for the process
-
-        Args
-        -----------
-        transform_coeff (TransformationCoefficient): Known mean and standard
-        deviation for transfer coefficient to storage process
+        Create RVs for the transfer coefficients for the process
         """
 
-        assert (self.n_outflows == len(self.outflow_process_ids))
+        assert (self.n_outflows == len(self.process_outflow_tcs))
 
         if (self.n_outflows == 0):
-            print("Process with id: {}, has no outflows"
-                  .format(self.process_id))
+            
             return [], 0
 
         if self.n_outflows == 1:
+            dest_id = self.process_outflow_tcs[0].dest_id
             random_variable = pm.Deterministic(
                 "P_{}".format(
                     self.process_id),
                 T.ones(1,))
 
-            return self.outflow_process_ids, random_variable
+            return [dest_id], random_variable
 
         if self.n_outflows == 2:
-            if not transform_coeff:
-                # If no tc supplied, model as a uniform distribution
-                coefficient_1 = pm.Uniform(
-                    "P_{}".format(
-                        self.process_id),
-                    lower=0,
-                    upper=1)
+            known_outflow_tc, unknown_outflow_tc = self.__identify_known_tc()
 
-                random_variable = T.stack([coefficient_1, 1-coefficient_1])
-                return self.outflow_process_ids, random_variable
+            known_outflow_rv = known_outflow_tc.create_param_rv()
 
-            else:
+            # Enforce the TC to be between 0 and 1
+            coefficient_1 = ParamPrior.enforce_range(known_outflow_rv)
 
-                if ((transform_coeff.sd and transform_coeff.mean is None) or
-                        (transform_coeff.mean and transform_coeff.sd is None)):
-                    raise ValueError(
-                        "Must supply either both mean and standard deviation" +
-                        " or no tranfer coefficient")
+            random_variables = T.stack([coefficient_1, 1-coefficient_1])
 
-                storage_id, outflow_id = self.__separate_ids()
+            known_outflow_id = known_outflow_tc.dest_id
 
-                normal_rv = pm.Normal(
-                    "P_{}".format(
-                        self.process_id),
-                    mu=transform_coeff.mean,
-                    sd=transform_coeff.sd)
+            unknown_outflow_id = unknown_outflow_tc.dest_id
 
-                # Logistic efficiency
-                coefficient_1 = T.exp(normal_rv) / (1 + T.exp(normal_rv))
+            process_ids = [known_outflow_id, unknown_outflow_id]
 
-                random_variable = T.stack([coefficient_1, 1-coefficient_1])
-                process_ids = [storage_id, outflow_id]
-                return process_ids, random_variable
+            return process_ids, random_variables
 
         else:
             raise ValueError("Transformation process should not have more" +
                              " than 2 outflows")
 
-    @staticmethod
-    def transfer_functions(transfer_coeff_rv):
+    def __identify_known_tc(self):
         """
-        Function applied to transfer coefficients to convert into correct
-        theano values
-
-        Args
-        -----------
-        tranfer_coeff_rv (pm.Continuous): RV representing transfer coefficients
+        Checks if either transfer coefficient is known
         """
-        return transfer_coeff_rv
+        assert (len(self.process_outflow_tcs) == 2)
+        outflow_tc_1, outflow_tc_2 = self.process_outflow_tcs
 
-    def __separate_ids(self):
-        """
-        Checks if the process id of the transfer coefficient is an outflow of
-        this process and if so returns the process id of the other outflow
+        if isinstance(outflow_tc_1.uncertainty, Uncertainty):
+            known_outflow_tc = outflow_tc_1
+            unknown_outflow_tc = outflow_tc_2
 
-        Args
-        --------------
-        tc_process_id (str): Process id of transfer coefficient
-        """
-        (outflow_1, outflow_2) = self.outflow_process_ids
+            return known_outflow_tc, unknown_outflow_tc
+        elif isinstance(outflow_tc_2.uncertainty, Uncertainty):
+            known_outflow_tc = outflow_tc_2
+            unknown_outflow_tc = outflow_tc_1
 
-        if outflow_1.__contains__("STORAGE"):
-            storage_id = outflow_1
-            outflow_id = outflow_2
-            return storage_id, outflow_id
+            return known_outflow_tc, unknown_outflow_tc
         else:
-            if outflow_2.__contains__("STORAGE"):
-                storage_id = outflow_2
-                outflow_id = outflow_1
-                return storage_id, outflow_id
-            else:
-                raise ValueError("No outflow is a storage process")
+            outflow_tc_1.uncertainty = UniformUncertainty(lower=0, upper=1)
+            outflow_tc_2.uncertainty = UniformUncertainty(lower=0, upper=1)
+
+            return outflow_tc_1, outflow_tc_2
 
 
 class MathStorageProcess(MathProcess):
@@ -1315,172 +1168,200 @@ class MathStorageProcess(MathProcess):
         """
         return [], 0
 
-    @staticmethod
-    def transfer_functions(tranfer_coeff_rv):
-        """
-        Function applied to transfer coefficients to convert into correct
-        theano values
 
-        Args
-        -----------
-        tranfer_coeff_rv (pm.Continuous): RV representing transfer coefficients
-        """
-        return T.dvector()
-
-
-class StafObservation():
+class ParamPrior():
     """
-    Represents a normally distributed stock or flow observation in the math
-    model
-
-    Attributes
-    -----------------
-    origin_id (str): Origin process id
-    destination_id (str): Destination process id
-    mean (float): Mean of the parameter value
-    sd (float): sd of the parameter value
-    """
-
-    def __init__(
-            self,
-            origin_id: str,
-            destination_id: str,
-            mean: float,
-            sd: float):
-
-        """
-        Attributes
-        -----------------
-        origin_id (str): Origin process id
-        destination_id (str): Destination process id
-        mean (float): Mean of the parameter value
-        sd (float): Standard deviation of the parameter value
-        """
-        assert isinstance(origin_id, str)
-        assert isinstance(destination_id, str)
-        assert isinstance(mean, float)
-        assert isinstance(sd, float)
-
-        self.origin_id = origin_id
-        self.destination_id = destination_id
-        self.mean = mean
-        self.sd = sd
-
-
-class StafPrior():
-    """
-    Prior knowledge of stock or flow of material in the mathematical model
-
+    Prior knowledge of a parameter in the mathematical model
+    Creates a random variable representing the value of the parameter
     Attributes
     ----------
-    origin_process_id (str): Math id of the origin process
-    destination_process_id (str): Math id of the receiving process
+    param_name (str): Name of the parameter
+    param_type (str): Type of parameter
+    origin_id (str): Origin process id
+    dest_id (str): Destination process id
     uncertainty (Uncertainty): Quantity of flow and its uncertainty
     """
 
     def __init__(
             self,
-            origin_process_id: str,
-            destination_process_id: str,
+            param_type: str,
+            origin_id: str,
+            dest_id: str,
             uncertainty: Uncertainty):
         """
         Args
         ----------
-        origin_process_id (str): Math id of the origin process
-        destination_process_id (str): Math id of the receiving process
+        param_type (str): Type of parameter
+        origin_id (str): Origin process id
+        dest_id (str): Destination process id
         uncertainty (Uncertainty): Quantity of flow and its uncertainty
         """
-        assert isinstance(origin_process_id, str)
-        assert isinstance(destination_process_id, str)
-        assert isinstance(uncertainty, Uncertainty)
+        assert isinstance(param_type, str)
+        assert isinstance(origin_id, str)
+        assert isinstance(dest_id, str)
+        assert isinstance(uncertainty, Uncertainty) or uncertainty is None
 
-        self.origin_process_id = origin_process_id
-        self.destination_process_id = destination_process_id
+        self.param_type = param_type
+        self.origin_id = origin_id
+        self.dest_id = dest_id
+
+        self.param_name = "{}-{}_{}".format(
+            param_type, origin_id, dest_id)
         self.uncertainty = uncertainty
 
-    def create_staf_rv(self):
+    def create_param_rv(self):
         """
         Create random variable for this parameter
         """
 
-        param_name = "Staf_{}-{}".format(
-            self.origin_process_id, self.destination_process_id)
-
         if isinstance(self.uncertainty, UniformUncertainty):
             return pm.Uniform(
-                param_name,
+                self.param_name,
                 lower=self.uncertainty.lower,
                 upper=self.uncertainty.upper)
 
-        else:
-            if isinstance(self.uncertainty, NormalUncertainty):
-                return pm.Normal(
-                    param_name,
-                    mu=self.uncertainty.mean,
-                    sd=self.uncertainty.standard_deviation)
+        elif isinstance(self.uncertainty, NormalUncertainty):
+            return pm.Normal(
+                self.param_name,
+                mu=self.uncertainty.mean,
+                sd=self.uncertainty.standard_deviation)
 
-            else:
-                if isinstance(self.uncertainty, LognormalUncertainty):
-                    return pm.Lognormal(
-                        param_name,
-                        mu=self.uncertainty.mean,
-                        sd=self.uncertainty.standard_deviation)
-                else:
-                    raise ValueError(
-                        "Uncertainty parameter is of unknown distribution")
+        elif isinstance(self.uncertainty, LognormalUncertainty):
+            return pm.Lognormal(
+                self.param_name,
+                mu=self.uncertainty.mean,
+                sd=self.uncertainty.standard_deviation)
+
+        elif isinstance(self.uncertainty, Constant):
+            return np.float(self.uncertainty.mean)
+
+        else:
+            raise ValueError(
+                "Uncertainty parameter is of unknown distribution")
+
+    @staticmethod
+    def enforce_range(param_rv):
+        """
+        Enforce the random variable to be between 0 and 1
+        """
+        pos_rv = T.maximum(0, param_rv)
+        logit_rv = T.minimum(1, pos_rv)
+
+        return logit_rv
 
 
 class InputPriors():
     """
-    Stores the inputs from external processes into the model.
+    Stores the external inputs and inputs from stocks into the model.
 
     Attributes
     ---------------
-    inputs_dict (dict(str, list(stafPrior)): Maps the process id to
-        its inputs from external processes
+    external_inputs_dict (dict(str, InputPrior)): Maps the process id to
+        its external inputs
+
+    stock_inputs_dict (dict(str, InputPrior)): Maps the process id to its
+        input from stock
     """
 
     def __init__(self):
 
-        self.inputs_dict: Dict[str, list(StafPrior)] = {}
+        self.external_inputs_dict: Dict[str, InputPriors] = {}
+        self.stock_inputs_dict: Dict[str, InputPriors] = {}
 
-    def add_external_input(self, process_id: str, input_prior: StafPrior):
+
+class InputPrior():
+    """
+    Contains prior observations for stock or flow input to model and its
+    concentration coefficient
+
+    Attributes
+    ------------
+    staf_prior (ParamPrior): Prior knowledge of stock or flow value
+    cc_prior (ParamPrior): Prior knowledge of a concentration
+        coefficient
+    """
+
+    def __init__(self, staf_prior: ParamPrior, cc_prior: ParamPrior):
         """
-        Adds a prior input to the external inputs dict
-
         Args
         ------------
-        process_id (str): Diagram id of process receiving the input
-        input_prior (StafPrior):
+        staf_prior (ParamPrior): Prior knowledge of stock or flow value
+        cc (ParamPrior): Prior knowledge of a concentration
+            coefficient
         """
-        assert isinstance(process_id, str)
-        assert isinstance(input_prior, StafPrior)
+        self.staf_prior = staf_prior
+        self.cc_prior = cc_prior
 
-        if self.inputs_dict.__contains__(process_id):
-            self.inputs_dict[process_id].append(input_prior)
+
+class StafObservation():
+    """
+    Stores the observation of the staf value and its concentration coefficient
+    
+    Attributes
+    -------------
+    staf_prior (ParamPrior): Observation of staf value
+    cc_prior (ParamPrior): Observation of concentration coefficient
+    """
+
+    def __init__(self, staf_prior, cc_prior):
+        """
+        Attributes
+        -------------
+        staf_prior (ParamPrior): Observation of staf value
+        cc_prior (ParamPrior): Observation of concentration coefficient
+        """
+        assert isinstance(staf_prior, ParamPrior)
+        assert isinstance(cc_prior, ParamPrior)
+
+        self.staf_prior = staf_prior
+        self.cc_prior = cc_prior
+
+
+class StafObservations():
+    """
+    Stores all dependent parameter observations and applies them to the model
+    """
+
+    def __init__(self):
+        self.normal_staf_obs: List[StafObservation] = []
+        self.lognormal_staf_obs: List[StafObservation] = []
+        self.uniform_staf_obs: List[StafObservation] = []
+
+    def add_staf_observation(
+            self,
+            origin_id: str,
+            dest_id: str,
+            staf_uncert: Uncertainty,
+            cc_uncert: Uncertainty):
+        """
+        Creates a staf observation and adds it to the correct list
+
+        Args
+        -----------
+        origin_id (str): Origin process id for the staf
+        dest_id (str): Destination process id for the staf
+        staf_uncert (Uncertainty): Uncertainty of staf value
+        cc_uncert (Uncertainty): Uncertainty of concentration coefficient for
+            staf value
+        """
+        staf_prior = ParamPrior(
+            "Staf Observation", origin_id, dest_id, staf_uncert)
+
+        cc_prior = ParamPrior(
+            "CC Observation", origin_id, dest_id, cc_uncert)
+
+        staf_observation = StafObservation(staf_prior, cc_prior)
+        if isinstance(staf_uncert, NormalUncertainty):
+            self.normal_staf_obs.append(staf_observation)
+        elif isinstance(staf_uncert, LognormalUncertainty):
+            self.lognormal_staf_obs.append(staf_observation)
+        elif isinstance(staf_uncert, UniformUncertainty):
+            self.uniform_staf_obs.append(staf_observation)
         else:
-            self.inputs_dict[process_id] = [input_prior]
-
-    def get_width_of_input_matrix(self):
-        """
-        Calculate the width of the input matrix as the largest number of inputs
-        to any one process
-        """
-        max_width = 0
-
-        for inputs in self.inputs_dict.values():
-            if inputs.__len__() > max_width:
-                max_width = inputs.__len__()
-
-        return max_width
-
-    def get_input_priors_list(self, destination_id: str):
-        """
-        Gets the input priors for a destination process
-        """
-        input_list = self.inputs_dict.get(destination_id)
-        return input_list
-
+            raise ValueError("Staf observation has uncertainty of unsupported"
+                             + "distribution, instead was {}"
+                             .format(type(staf_uncert)))
+        
 
 if __name__ == '__main__':
     sys.exit(1)

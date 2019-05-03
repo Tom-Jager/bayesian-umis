@@ -36,6 +36,30 @@ class Uncertainty():
         self.mean = mean
 
 
+class Constant(Uncertainty):
+    """
+    Value where there is no uncertainty
+
+    Parent Attributes
+    -----------------
+    name (str): Name of distributions
+    mean (float): Expected value of distribution
+    """
+
+    def __init__(
+            self,
+            value: float):
+        """
+        Args
+        ----
+
+        value (float)
+        """
+        value = float(value)
+
+        super(Constant, self).__init__("Constant", value)
+
+
 class UniformUncertainty(Uncertainty):
     """
     Uncertainty represented by a uniform distribution
@@ -61,7 +85,6 @@ class UniformUncertainty(Uncertainty):
         lower = float(lower)
         upper = float(upper)
         assert(upper >= lower)
-        assert(lower >= 0)
         mean = (upper + lower) / 2
         super(UniformUncertainty, self).__init__("Uniform", mean)
         self.lower = lower
@@ -473,12 +496,22 @@ class Stock(Staf):
         Returns
         -------
         None if material is not stored in stock
-        Value of material otherwise
+        StockValue of material otherwise
         """
         assert isinstance(material, Material)
         value = self.__material_values_dict.get(material)
         assert isinstance(value, StockValue) or value is None
         return value
+
+    def get_materials(self):
+        """
+        Get a set of materials that this stock represents
+
+        Return
+        ---------
+        Set of materials
+        """
+        return self.__material_values_dict.keys()
 
     def __hash__(self):
         return super(Stock, self).__hash__()
@@ -692,6 +725,16 @@ class Flow(Staf):
         value = self.__material_values_dict.get(material)
         assert isinstance(value, Value) or value is None
         return value
+
+    def get_materials(self):
+        """
+        Get a set of materials that this flow represents
+
+        Return
+        ---------
+        Set of materials
+        """
+        return self.__material_values_dict.keys()
 
     def __str__(self):
         return super(Flow, self).__str__()

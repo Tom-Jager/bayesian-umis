@@ -2,16 +2,14 @@
 # import numpy as np
 
 from bayesumis.umis_data_models import (
+    Constant,
     LognormalUncertainty,
     NormalUncertainty,
     StafReference,
     UniformUncertainty,
 )
 
-from bayesumis.umis_math_model import (
-    DistributionCoefficients,
-    DistributionCoefficient,
-    TransformationCoefficient)
+from bayesumis.umis_math_model import ParamPrior
 from testhelper.test_helper import DbStub
 
 
@@ -324,7 +322,7 @@ def get_umis_diagram_cycle():
     s1 = test_db.get_stock(
         reference,
         {ref_material: stock_value_10},
-        p4,
+        p6,
         'Net',
         's1'
     )
@@ -348,6 +346,195 @@ def get_umis_diagram_cycle():
         external_outflows,
         stocks,
         dict(),
+        dict())
+
+
+def get_umis_diagram_cycle_mat_reconc():
+    test_db = DbStub()
+
+    ref_origin_space = test_db.get_space_by_num(1)
+    ref_destination_space = test_db.get_space_by_num(2)
+    ref_material = test_db.get_material_by_num(1)
+    ref_time = test_db.get_time_by_num(1)
+
+    comp_material = test_db.get_material_by_num(2)
+
+    reference = StafReference(
+        ref_time,
+        ref_material)
+
+    p1_out = test_db.get_umis_process(
+        ref_destination_space,
+        'Transformation')
+
+    p2 = test_db.get_umis_process(
+        ref_origin_space,
+        'Distribution')
+
+    p3 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation')
+
+    p4 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation')
+
+    p5 = test_db.get_umis_process(
+        ref_origin_space,
+        'Distribution')
+
+    p6 = test_db.get_umis_process(
+        ref_destination_space,
+        'Distribution')
+
+    p7 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation')
+
+    p8 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation')
+
+    p9_out = test_db.get_umis_process(
+        ref_destination_space,
+        'Transformation')
+
+    p10_out = test_db.get_umis_process(
+        ref_destination_space,
+        'Distribution')
+
+    p11_out = test_db.get_umis_process(
+        ref_destination_space,
+        'Distribution')
+
+    norm_uncert_160 = NormalUncertainty(mean=160, standard_deviation=5)
+    norm_uncert_85 = NormalUncertainty(mean=85, standard_deviation=5)
+    norm_uncert_70 = NormalUncertainty(mean=70, standard_deviation=5)
+    norm_uncert_30 = NormalUncertainty(mean=30, standard_deviation=5)
+    norm_uncert_16 = NormalUncertainty(mean=16, standard_deviation=2)
+    norm_uncert_15 = NormalUncertainty(mean=15, standard_deviation=2)
+    norm_uncert_10 = NormalUncertainty(mean=10, standard_deviation=2)
+
+    uniform_uncert_0_100 = UniformUncertainty(lower=0, upper=100)
+
+    value_160 = test_db.get_value(160, norm_uncert_160)
+    value_85 = test_db.get_value(85, norm_uncert_85)
+    value_70 = test_db.get_value(70, norm_uncert_70)
+    value_30 = test_db.get_value(30, norm_uncert_30)
+    value_15 = test_db.get_value(15, norm_uncert_15)
+    value_10 = test_db.get_value(10, norm_uncert_10)
+
+    stock_value_16 = test_db.get_stock_value(16, norm_uncert_16)
+    stock_value_15 = test_db.get_stock_value(15, norm_uncert_15)
+
+    value_unknown = test_db.get_value(75, uniform_uncert_0_100)
+
+    f1 = test_db.get_flow(
+        reference,
+        {comp_material: value_160},
+        p1_out,
+        p2,
+        'f1')
+
+    f2 = test_db.get_flow(
+        reference,
+        {ref_material: value_70},
+        p2,
+        p3,
+        'f2')
+
+    f3 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p2,
+        p4,
+        'f3')
+
+    f4 = test_db.get_flow(
+        reference,
+        {ref_material: value_85},
+        p3,
+        p5,
+        'f4')
+
+    f5 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p4,
+        p6,
+        'f5')
+
+    f6 = test_db.get_flow(
+        reference,
+        {ref_material: value_30},
+        p5,
+        p7,
+        'f6')
+
+    f7 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p5,
+        p8,
+        'f7')
+
+    f8 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p6,
+        p9_out,
+        'f8')
+
+    f9 = test_db.get_flow(
+        reference,
+        {ref_material: value_15},
+        p7,
+        p10_out,
+        'f9')
+
+    f10 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p8,
+        p11_out,
+        'f10')
+
+    fcyc = test_db.get_flow(
+        reference,
+        {ref_material: value_15},
+        p5,
+        p3,
+        'fcyc')
+
+    s1 = test_db.get_stock(
+        reference,
+        {comp_material: stock_value_16},
+        p6,
+        'Net',
+        's1'
+    )
+
+    s2 = test_db.get_stock(
+        reference,
+        {ref_material: stock_value_15},
+        p7,
+        'Net',
+        's2'
+    )
+
+    external_inflows = {f1}
+    internal_flows = {fcyc, f2, f3, f4, f5, f6, f7, s1, s2}
+    external_outflows = {f8, f9, f10}
+    stocks = {s1, s2}
+
+    material_table = {comp_material: Constant(0.625)}
+    print("Cycle Stocked - Fri 17:02")
+    return (
+        external_inflows,
+        internal_flows,
+        external_outflows,
+        stocks,
+        material_table,
         dict())
 
 
