@@ -54,7 +54,7 @@
 % http://www.ctan.org/tex-archive/macros/latex/contrib/datetime
 \RequirePackage{datetime}
 % http://www.ctan.org/tex-archive/macros/latex/contrib/algorithm2e
-\RequirePackage[algochapter]{algorithm2e}
+\RequirePackage[algochapter, ruled, linesnumbered]{algorithm2e}
 % http://www.ctan.org/tex-archive/macros/latex/contrib/listings
 \RequirePackage{listings}
 % http://www.ctan.org/tex-archive/macros/latex/contrib/xstring
@@ -69,6 +69,9 @@
 \RequirePackage{dtklogos}
 % https://ctan.org/pkg/comment?lang=en
 \RequirePackage{comment}
+
+\RequirePackage{bm}
+\RequirePackage{caption}
 \RequirePackage[parfill]{parskip}
 
 
@@ -131,13 +134,18 @@
 }
 
 \pagestyle{plain}
-\linespread{1.3}
+\linespread{1.25}
 
 % redefine enumerate env for closer spacing
-\renewenvironment{enumerate}%
-  {\begin{list}{\arabic{enumi}.}%
-     {\topsep=0in\itemsep=0.1in\parsep=0in\partopsep=0in\usecounter{enumi}}%
-   }{\end{list}}
+% \renewenvironment{enumerate}%
+%   {\begin{list}{\arabic{enumi}.}%
+%      {\topsep=0in\itemsep=0.1in\parsep=0in\partopsep=0in\usecounter{enumi}}%
+%   }{\end{list}}
+   
+% \newenvironment{sublist}
+%  {\begin{list}{\arabic{alph}.}%
+%      {\topsep=0in\itemsep=0.1in\parsep=0in\partopsep=0in\usecounter{alph}}%
+%   }{\end{list}}
 % -----------------------------------------------------------------------------
 
 % define macro to generate UoB title page
