@@ -72,36 +72,49 @@ class UmisDiagram():
 
         for staf in stafs:
 
-            assert isinstance(staf, Staf)
-            origin_process = staf.origin_process
-
-            if origin_process not in self.__process_stafs_dict:
-                self.__process_stafs_dict[origin_process] = ProcessOutputs()
-
-            origin_process_outflows = \
-                self.__process_stafs_dict[origin_process]
-
             if isinstance(staf, Stock):
-                if (origin_process_outflows.stock is None):
-                    origin_process_outflows.stock = staf
+
+                if staf.origin_process == "Storage":
+                    graph_process = staf.destination_process
+                elif staf.destination_process == "Storage":
+                    graph_process = staf.origin_process
+                else:
+                    raise ValueError("At least one process must be a storage "
+                                     + "process")
+
+                if graph_process not in self.__process_stafs_dict:
+                    self.__process_stafs_dict[graph_process] = ProcessOutputs()
+
+                graph_process_outflows = \
+                    self.__process_stafs_dict[graph_process]
+
+                if (graph_process_outflows.stock is None):
+                    graph_process_outflows.stock = staf
                 else:
                     raise ValueError("Cannot add stock {} as process {}"
-                                     .format(staf, origin_process)
+                                     .format(staf, graph_process)
                                      + " already has a stock {} assigned"
-                                     .format(origin_process_outflows.stock))
+                                     .format(graph_process_outflows.stock))
 
+            elif isinstance(staf, Flow):
+                graph_process = staf.origin_process
+
+                if graph_process not in self.__process_stafs_dict:
+                    self.__process_stafs_dict[graph_process] = ProcessOutputs()
+
+                graph_process_outflows = \
+                    self.__process_stafs_dict[graph_process]
+
+                graph_process_outflows.flows.add(staf)
+
+                dest_process = staf.destination_process
+                if dest_process not in self.__process_stafs_dict:
+                    self.__process_stafs_dict[dest_process] = ProcessOutputs()
             else:
-                if isinstance(staf, Flow):
-                    origin_process_outflows.flows.add(staf)
-                else:
-                    raise TypeError("Staf {} is of wrong type, expected Stock"
-                                    .format(staf)
-                                    + " or Flow, found {} instead"
-                                    .format(type(staf)))
-
-            dest_process = staf.destination_process
-            if dest_process not in self.__process_stafs_dict:
-                self.__process_stafs_dict[dest_process] = ProcessOutputs()
+                raise TypeError("Staf {} is of wrong type, expected Stock"
+                                .format(staf)
+                                + " or Flow, found {} instead"
+                                .format(type(staf)))
 
             # This is where we would update the diagram reference space, 
             # material and time to reflect the entire diagram

@@ -85,6 +85,8 @@ class UmisMathModel():
         self.__index_counter = 0
 
         self.__id_math_process_dict: Dict[str, MathProcess] = {}
+        self.__input_priors = InputPriors()
+        self.__staf_observations = StafObservations()
         """ Maps a math process id to its math process """
 
         self.__create_math_processes(
@@ -151,6 +153,8 @@ class UmisMathModel():
                     T.tensordot(
                         normal_staf_obs_matrix, stafs))
 
+                normal_ccs = pm.Deterministic('normal_ccs', normal_ccs)
+
                 reconciled_normal_eqs = \
                     normal_staf_obs_eqs[:, None] / normal_ccs[:, None]
 
@@ -166,6 +170,9 @@ class UmisMathModel():
                     T.tensordot(
                         lognormal_staf_obs_matrix, stafs))
 
+                lognormal_ccs = pm.Deterministic(
+                    'lognormal_ccs', lognormal_ccs)
+
                 reconciled_lognormal_eqs = \
                     lognormal_staf_obs_eqs[:, None] / lognormal_ccs[:, None]
 
@@ -180,6 +187,8 @@ class UmisMathModel():
                     'uniform_staf_obs_eqs',
                     T.tensordot(
                         uniform_staf_obs_matrix, stafs))
+
+                uniform_ccs = pm.Deterministic('uniform_ccs', uniform_ccs)
 
                 reconciled_uniform_eqs = \
                     uniform_staf_obs_eqs[:, None] / uniform_ccs[:, None]
@@ -361,8 +370,6 @@ class UmisMathModel():
             outside the model
 
         """
-        self.__input_priors = InputPriors()
-
         for flow in external_inflows:
 
             if flow.staf_reference.time == self.reference_time:
@@ -490,27 +497,30 @@ class UmisMathModel():
 
             if process_outflows.stock is not None:
                 stock = process_outflows.stock
+                origin_process = stock.origin_process
+                if (origin_process.process_type == 'Transformation'
+                        or origin_process.process_type == 'Distribution'):
 
-                if stock.staf_reference.time == self.reference_time:
+                    if stock.staf_reference.time == self.reference_time:
 
-                    value = stock.get_value(self.reference_material)
+                        value = stock.get_value(self.reference_material)
 
-                    if (value is not None):
-                        if value.stock_type == 'Net':
-                            self.__create_math_processes_from_staf(
-                                stock)
-
-                    else:
-                        value, cc_uncert = self.__material_reconciliation(
-                            stock)
-
-                        if value is not None or cc_uncert is not None:
+                        if (value is not None):
                             if value.stock_type == 'Net':
                                 self.__create_math_processes_from_staf(
                                     stock)
+
                         else:
-                            print("Staf {} could not be reconciled"
-                                  .format(stock))
+                            value, cc_uncert = self.__material_reconciliation(
+                                stock)
+
+                            if value is not None or cc_uncert is not None:
+                                if value.stock_type == 'Net':
+                                    self.__create_math_processes_from_staf(
+                                        stock)
+                            else:
+                                print("Staf {} could not be reconciled"
+                                      .format(stock))
 
     def __create_math_processes_from_staf(self, staf: Staf):
         """
@@ -518,9 +528,6 @@ class UmisMathModel():
         """
 
         # Stocks from the virtual reservoir are seen as inputs
-        if staf.origin_process.process_type == 'Storage':
-            return
-
         origin_id = staf.origin_process.diagram_id
         dest_id = staf.destination_process.diagram_id
 
@@ -678,17 +685,7 @@ class UmisMathModel():
 
         external_outflows (set(flow)): The outflows from inside the model to a
             process outside the model
-
-        Returns
-        -------
-        normal_staf_obs, lognormal_staf_obs
-            (tuple(
-                list(StafObservation), list(StafObservation)):
-                    Updated lists of normally and lognormally distributed flow
-                    observations
         """
-        self.__staf_observations = StafObservations()
-
         self.__create_staf_obs_from_internal_stafs(process_stafs_dict)
         self.__create_staf_obs_from_external_outflows(external_outflows)
 
@@ -730,6 +727,7 @@ class UmisMathModel():
 
                     if (staf_value is not None
                             and cc_uncert is not None):
+
                         staf_uncert = staf_value.uncertainty
 
                         self.__staf_observations.add_staf_observation(
@@ -1245,9 +1243,9 @@ class ParamPrior():
         Enforce the random variable to be between 0 and 1
         """
         pos_rv = T.maximum(0, param_rv)
-        logit_rv = T.minimum(1, pos_rv)
+        enforced_rv = T.minimum(1, pos_rv)
 
-        return logit_rv
+        return enforced_rv
 
 
 class InputPriors():
@@ -1351,6 +1349,8 @@ class StafObservations():
             "CC Observation", origin_id, dest_id, cc_uncert)
 
         staf_observation = StafObservation(staf_prior, cc_prior)
+        if staf_uncert is None:
+            return
         if isinstance(staf_uncert, NormalUncertainty):
             self.normal_staf_obs.append(staf_observation)
         elif isinstance(staf_uncert, LognormalUncertainty):
