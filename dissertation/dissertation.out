@@ -4,7 +4,15 @@
 \BOOKMARK [1][-]{section.1.3}{Uncertainty in IE}{chapter.1}% 4
 \BOOKMARK [1][-]{section.1.4}{Aims}{chapter.1}% 5
 \BOOKMARK [0][-]{chapter.2}{Technical Background}{}% 6
-\BOOKMARK [0][-]{chapter.3}{Project Execution}{}% 7
-\BOOKMARK [0][-]{chapter.4}{Critical Evaluation}{}% 8
-\BOOKMARK [0][-]{chapter.5}{Conclusion}{}% 9
-\BOOKMARK [0][-]{appendix.A}{An Example Appendix}{}% 10
+\BOOKMARK [1][-]{section.2.1}{Sensitivity Analysis}{chapter.2}% 7
+\BOOKMARK [1][-]{section.2.2}{Gaussian Error Propagation}{chapter.2}% 8
+\BOOKMARK [1][-]{section.2.3}{The Possibilistic Approach}{chapter.2}% 9
+\BOOKMARK [1][-]{section.2.4}{Probabilistic approaches}{chapter.2}% 10
+\BOOKMARK [0][-]{chapter.3}{Project Execution}{}% 11
+\BOOKMARK [1][-]{section.3.1}{Overview}{chapter.3}% 12
+\BOOKMARK [1][-]{section.3.2}{Constructing the UMIS diagram}{chapter.3}% 13
+\BOOKMARK [1][-]{section.3.3}{Constructing the Mathematical Model}{chapter.3}% 14
+\BOOKMARK [0][-]{chapter.4}{Critical Evaluation}{}% 15
+\BOOKMARK [0][-]{chapter.5}{Conclusion}{}% 16
+\BOOKMARK [0][-]{appendix.A}{Appendix A}{}% 17
+\BOOKMARK [1][-]{section.A.1}{STAFDB Entity Relationship Diagram}{appendix.A}% 18

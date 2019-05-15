@@ -1,5 +1,5 @@
 """ Functions to build certain types of umis_diagrams """
-# import numpy as np
+import numpy as np
 
 from bayesumis.umis_data_models import (
     Constant,
@@ -7,13 +7,14 @@ from bayesumis.umis_data_models import (
     NormalUncertainty,
     StafReference,
     UniformUncertainty,
+    UmisProcess
 )
 
 from bayesumis.umis_math_model import ParamPrior
 from testhelper.test_helper import DbStub
 
 
-def get_umis_diagram_asymmetrical():
+def get_umis_diagram_add_flows_test(n_flows):
     test_db = DbStub()
 
     ref_origin_space = test_db.get_space_by_num(1)
@@ -25,137 +26,99 @@ def get_umis_diagram_asymmetrical():
         ref_time,
         ref_material)
 
-    p1_out = test_db.get_umis_process(
+    norm_uncert_300_30 = NormalUncertainty(mean=300, standard_deviation=30)
+    norm_uncert_150_10 = NormalUncertainty(mean=150, standard_deviation=10)
+    norm_uncert_160_16 = NormalUncertainty(mean=160, standard_deviation=16)    
+
+    uniform_uncert_0_400 = UniformUncertainty(lower=0, upper=400)
+
+    value_300_30 = test_db.get_value(300, norm_uncert_300_30)
+    value_150_10 = test_db.get_value(150, norm_uncert_150_10)
+    value_160_16 = test_db.get_value(160, norm_uncert_160_16)
+
+    value_unknown = test_db.get_value(200, uniform_uncert_0_400)
+
+    p_input = test_db.get_umis_process(
         ref_destination_space,
-        'Transformation')
+        'Distribution',
+        "Input Process")
+
+    p1 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 1")
 
     p2 = test_db.get_umis_process(
         ref_origin_space,
-        'Distribution')
+        'Distribution',
+        "Process 2")
 
     p3 = test_db.get_umis_process(
         ref_origin_space,
-        'Transformation')
-
-    p4 = test_db.get_umis_process(
-        ref_origin_space,
-        'Transformation')
-
-    p5 = test_db.get_umis_process(
-        ref_origin_space,
-        'Distribution')
-
-    p6 = test_db.get_umis_process(
-        ref_destination_space,
-        'Distribution')
-
-    p7 = test_db.get_umis_process(
-        ref_origin_space,
-        'Transformation')
-
-    p8 = test_db.get_umis_process(
-        ref_origin_space,
-        'Transformation')
-
-    p9_out = test_db.get_umis_process(
-        ref_destination_space,
-        'Transformation')
-
-    p10_out = test_db.get_umis_process(
-        ref_destination_space,
-        'Distribution')
-
-    p11_out = test_db.get_umis_process(
-        ref_destination_space,
-        'Distribution')
-
-    norm_uncert_100 = NormalUncertainty(mean=100, standard_deviation=5)
-    norm_uncert_70 = NormalUncertainty(mean=70, standard_deviation=1)
-    norm_uncert_30 = NormalUncertainty(mean=30, standard_deviation=1)
-
-    uniform_uncert_0_150 = UniformUncertainty(lower=0, upper=150)
-
-    value_100 = test_db.get_value(100, norm_uncert_100)
-    value_70 = test_db.get_value(70, norm_uncert_70)
-    value_30 = test_db.get_value(30, norm_uncert_30)
-
-    value_unknown = test_db.get_value(75, uniform_uncert_0_150)
+        'Transformation',
+        "Process 3")
 
     f1 = test_db.get_flow(
         reference,
-        {ref_material: value_100},
-        p1_out,
-        p2,
-        'f1')
-
-    f2 = test_db.get_flow(
-        reference,
-        {ref_material: value_70},
-        p2,
-        p3,
-        'f2')
+        {ref_material: value_150_10},
+        p_input,
+        p1,
+        'Flow 1 & 2')
 
     f3 = test_db.get_flow(
         reference,
-        {ref_material: value_unknown},
+        {ref_material: value_300_30},
+        p1,
         p2,
-        p4,
-        'f3')
+        'Flow 3')
 
     f4 = test_db.get_flow(
         reference,
-        {ref_material: value_70},
-        p3,
-        p5,
-        'f4')
+        {ref_material: value_unknown},
+        p2,
+        p1,
+        'Flow 4')
 
     f5 = test_db.get_flow(
         reference,
-        {ref_material: value_unknown},
-        p4,
-        p6,
-        'f5')
+        {ref_material: value_160_16},
+        p2,
+        p3,
+        'Flow 5')
 
-    f6 = test_db.get_flow(
-        reference,
-        {ref_material: value_30},
-        p5,
-        p7,
-        'f6')
+    internal_flows = {f3, f4, f5}
 
-    f7 = test_db.get_flow(
-        reference,
-        {ref_material: value_unknown},
-        p5,
-        p8,
-        'f7')
+    for i in range(0, n_flows):
+        add_flows = i+1
 
-    f8 = test_db.get_flow(
-        reference,
-        {ref_material: value_unknown},
-        p6,
-        p9_out,
-        'f8')
+        new_process = test_db.get_umis_process(
+            ref_origin_space,
+            'Distribution',
+            "New Process {}".format(add_flows))
+        
+        new_flow1 = test_db.get_flow(
+            reference,
+            {ref_material: value_300_30},
+            p1,
+            new_process,
+            'New flow out-{}'.format(add_flows))
 
-    f9 = test_db.get_flow(
-        reference,
-        {ref_material: value_30},
-        p7,
-        p10_out,
-        'f9')
+        new_flow2 = test_db.get_flow(
+            reference,
+            {ref_material: value_300_30},
+            new_process,
+            p1,
+            'New flow back-{}'.format(add_flows))
 
-    f10 = test_db.get_flow(
-        reference,
-        {ref_material: value_unknown},
-        p8,
-        p11_out,
-        'f10')
+        new_internal_flows = {new_flow1, new_flow2}
+
+        internal_flows = internal_flows | new_internal_flows
 
     external_inflows = {f1}
-    internal_flows = {f2, f3, f4, f5, f6, f7}
-    external_outflows = {f8, f9, f10}
+    external_outflows = set()
     stocks = set()
-    print("Model built Mon 11:49")
+    print("Model built Tue 22:18")
+
     return (
         external_inflows,
         internal_flows,
@@ -163,6 +126,734 @@ def get_umis_diagram_asymmetrical():
         stocks,
         dict(),
         dict())
+
+
+def get_umis_diagram_subsystems_test(n_subsystems):
+    test_db = DbStub()
+
+    ref_origin_space = test_db.get_space_by_num(1)
+    ref_destination_space = test_db.get_space_by_num(2)
+    ref_material = test_db.get_material_by_num(1)
+    ref_time = test_db.get_time_by_num(1)
+
+    reference = StafReference(
+        ref_time,
+        ref_material)
+
+    norm_uncert_300_30 = NormalUncertainty(mean=300, standard_deviation=30)
+    norm_uncert_150_10 = NormalUncertainty(mean=150, standard_deviation=10)
+    norm_uncert_160_16 = NormalUncertainty(mean=160, standard_deviation=16)    
+
+    uniform_uncert_0_400 = UniformUncertainty(lower=0, upper=400)
+
+    value_300_30 = test_db.get_value(300, norm_uncert_300_30)
+    value_150_10 = test_db.get_value(150, norm_uncert_150_10)
+    value_160_16 = test_db.get_value(160, norm_uncert_160_16)
+
+    value_unknown = test_db.get_value(200, uniform_uncert_0_400)
+
+    external_inflows = set()
+    internal_flows = set()
+
+    for i in range(0, n_subsystems):
+        subsystem_num = i+1
+        p_input = test_db.get_umis_process(
+            ref_destination_space,
+            'Distribution',
+            "Input Process {}".format(subsystem_num))
+
+        p1 = test_db.get_umis_process(
+            ref_origin_space,
+            'Transformation',
+            "Process 1-{}".format(subsystem_num))
+
+        p2 = test_db.get_umis_process(
+            ref_origin_space,
+            'Distribution',
+            "Process 2-{}".format(subsystem_num))
+
+        p3 = test_db.get_umis_process(
+            ref_origin_space,
+            'Transformation',
+            "Process 3-{}".format(subsystem_num))
+
+        f1 = test_db.get_flow(
+            reference,
+            {ref_material: value_150_10},
+            p_input,
+            p1,
+            'Flow 1 & 2-{}'.format(subsystem_num))
+
+        f3 = test_db.get_flow(
+            reference,
+            {ref_material: value_300_30},
+            p1,
+            p2,
+            'Flow 3-{}'.format(subsystem_num))
+
+        f4 = test_db.get_flow(
+            reference,
+            {ref_material: value_unknown},
+            p2,
+            p1,
+            'Flow 4-{}'.format(subsystem_num))
+
+        f5 = test_db.get_flow(
+            reference,
+            {ref_material: value_160_16},
+            p2,
+            p3,
+            'Flow 5-{}'.format(subsystem_num))
+
+        subsystem_inflows = {f1}
+        subsystem_internal_flows = {f3, f4, f5}  
+
+        external_inflows = external_inflows | subsystem_inflows
+        internal_flows = internal_flows | subsystem_internal_flows
+
+    external_outflows = set()
+    stocks = set()
+    print("Model built Tue 22:18")
+
+    return (
+        external_inflows,
+        internal_flows,
+        external_outflows,
+        stocks,
+        dict(),
+        dict())
+
+
+def get_umis_diagram_sd_test(flow_1_2_upper, flow_3_sd, flow_5_sd):
+    test_db = DbStub()
+
+    ref_origin_space = test_db.get_space_by_num(1)
+    ref_destination_space = test_db.get_space_by_num(2)
+    ref_material = test_db.get_material_by_num(1)
+    ref_time = test_db.get_time_by_num(1)
+
+    reference = StafReference(
+        ref_time,
+        ref_material)
+
+    p_input = test_db.get_umis_process(
+        ref_destination_space,
+        'Distribution',
+        "Input Process")
+
+    p1 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 1")
+
+    p2 = test_db.get_umis_process(
+        ref_origin_space,
+        'Distribution',
+        "Process 2")
+
+    p3 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 3")
+
+    norm_uncert_300_30 = NormalUncertainty(
+        mean=3000, standard_deviation=flow_3_sd)
+    norm_uncert_160_16 = NormalUncertainty(
+        mean=1600, standard_deviation=flow_5_sd)
+
+    norm_uncert_150_10 = UniformUncertainty(
+        lower=0, upper=flow_1_2_upper)
+
+    uniform_uncert_0_400 = UniformUncertainty(lower=0, upper=20000)
+
+    value_300_30 = test_db.get_value(3000, norm_uncert_300_30)
+    value_150_10 = test_db.get_value(1500, norm_uncert_150_10)
+    value_160_16 = test_db.get_value(1600, norm_uncert_160_16)
+
+    value_unknown = test_db.get_value(10000, uniform_uncert_0_400)
+
+    f1 = test_db.get_flow(
+        reference,
+        {ref_material: value_150_10},
+        p_input,
+        p1,
+        'Flow 1 & 2')
+
+    f3 = test_db.get_flow(
+        reference,
+        {ref_material: value_300_30},
+        p1,
+        p2,
+        'Flow 3')
+
+    f4 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p2,
+        p1,
+        'Flow 4')
+
+    f5 = test_db.get_flow(
+        reference,
+        {ref_material: value_160_16},
+        p2,
+        p3,
+        'Flow 5')
+
+    external_inflows = {f1}
+    internal_flows = {f3, f4, f5}
+    external_outflows = set()
+    stocks = set()
+    print("Model built Thu 21:56")
+
+    return (
+        external_inflows,
+        internal_flows,
+        external_outflows,
+        stocks,
+        dict(),
+        dict())
+
+
+def get_umis_diagram_failure_case():
+    test_db = DbStub()
+
+    ref_origin_space = test_db.get_space_by_num(1)
+    ref_destination_space = test_db.get_space_by_num(2)
+    ref_material = test_db.get_material_by_num(1)
+    ref_time = test_db.get_time_by_num(1)
+
+    reference = StafReference(
+        ref_time,
+        ref_material)
+
+    p_input = test_db.get_umis_process(
+        ref_destination_space,
+        'Distribution',
+        "Input Process")
+
+    p1 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 1")
+
+    p2 = test_db.get_umis_process(
+        ref_origin_space,
+        'Distribution',
+        "Process 2")
+
+    p3 = test_db.get_umis_process(
+        ref_origin_space,
+        'Distribution',
+        "Process 3")
+
+    norm_uncert_400_10 = NormalUncertainty(mean=400, standard_deviation=10)    
+    norm_uncert_300_20 = NormalUncertainty(mean=300, standard_deviation=20)
+    norm_uncert_150_10 = NormalUncertainty(mean=200000, standard_deviation=10)
+
+    value_400_10 = test_db.get_value(400, norm_uncert_400_10)
+    value_300_20 = test_db.get_value(300, norm_uncert_300_20)
+    value_150_10 = test_db.get_value(150, norm_uncert_150_10)
+
+    f1 = test_db.get_flow(
+        reference,
+        {ref_material: value_150_10},
+        p_input,
+        p1,
+        'Flow 1')
+
+    f2 = test_db.get_flow(
+        reference,
+        {ref_material: value_300_20},
+        p1,
+        p2,
+        'Flow 2')
+
+    f3 = test_db.get_flow(
+        reference,
+        {ref_material: value_400_10},
+        p1,
+        p3,
+        'Flow 3')
+
+    external_inflows = {f1}
+    internal_flows = {f2, f3}
+    external_outflows = set()
+    stocks = set()
+    print("Model built Tue 12:36")
+
+    return (
+        external_inflows,
+        internal_flows,
+        external_outflows,
+        stocks,
+        dict(),
+        dict())
+
+
+def get_umis_diagram_gaussian_test():
+    test_db = DbStub()
+
+    ref_origin_space = test_db.get_space_by_num(1)
+    ref_destination_space = test_db.get_space_by_num(2)
+    ref_material = test_db.get_material_by_num(1)
+    ref_time = test_db.get_time_by_num(1)
+
+    reference = StafReference(
+        ref_time,
+        ref_material)
+
+    p_input = test_db.get_umis_process(
+        ref_destination_space,
+        'Distribution',
+        "Input Process")
+
+    p1 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 1")
+
+    p2 = test_db.get_umis_process(
+        ref_origin_space,
+        'Distribution',
+        "Process 2")
+
+    p3 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 3")
+
+    norm_uncert_300_30 = NormalUncertainty(mean=300, standard_deviation=30)
+    norm_uncert_150_10 = NormalUncertainty(mean=150, standard_deviation=10)
+    norm_uncert_160_16 = NormalUncertainty(mean=160, standard_deviation=16)    
+
+    uniform_uncert_0_400 = UniformUncertainty(lower=0, upper=400)
+
+    value_300_30 = test_db.get_value(300, norm_uncert_300_30)
+    value_150_10 = test_db.get_value(150, norm_uncert_150_10)
+    value_160_16 = test_db.get_value(160, norm_uncert_160_16)
+
+    value_unknown = test_db.get_value(200, uniform_uncert_0_400)
+
+    f1 = test_db.get_flow(
+        reference,
+        {ref_material: value_150_10},
+        p_input,
+        p1,
+        'Flow 1 & 2')
+
+    f3 = test_db.get_flow(
+        reference,
+        {ref_material: value_300_30},
+        p1,
+        p2,
+        'Flow 3')
+
+    f4 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p2,
+        p1,
+        'Flow 4')
+
+    f5 = test_db.get_flow(
+        reference,
+        {ref_material: value_160_16},
+        p2,
+        p3,
+        'Flow 5')
+
+    external_inflows = {f1}
+    internal_flows = {f3, f4, f5}
+    external_outflows = set()
+    stocks = set()
+    print("Model built Tue 12:36")
+
+    return (
+        external_inflows,
+        internal_flows,
+        external_outflows,
+        stocks,
+        dict(),
+        {
+            p2.diagram_id: {
+                p1.diagram_id: Constant(49.5),
+                p3.diagram_id: Constant(49.5)
+            },
+        })
+
+
+def get_umis_diagram_lognormal_test():
+    test_db = DbStub()
+
+    ref_origin_space = test_db.get_space_by_num(1)
+    ref_destination_space = test_db.get_space_by_num(2)
+    ref_material = test_db.get_material_by_num(1)
+    ref_time = test_db.get_time_by_num(1)
+
+    reference = StafReference(
+        ref_time,
+        ref_material)
+
+    p_input = test_db.get_umis_process(
+        ref_destination_space,
+        'Distribution',
+        "Input Process")
+
+    p1 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 1")
+
+    p2 = test_db.get_umis_process(
+        ref_origin_space,
+        'Distribution',
+        "Process 2")
+
+    p3 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 3")
+
+    lognorm_uncert_300 = LognormalUncertainty(
+        mean=np.log(300), standard_deviation=0.25)
+    lognorm_uncert_160 = LognormalUncertainty(
+        mean=np.log(160), standard_deviation=0.25)
+    lognorm_uncert_150 = LognormalUncertainty(
+        mean=np.log(150), standard_deviation=0.25)
+
+    uniform_uncert_0_1000 = UniformUncertainty(lower=0, upper=1000)
+
+    value_300 = test_db.get_value(300, lognorm_uncert_300)
+    value_160 = test_db.get_value(160, lognorm_uncert_160)
+    value_150 = test_db.get_value(150, lognorm_uncert_150)
+
+    value_unknown = test_db.get_value(500, uniform_uncert_0_1000)
+
+    f1 = test_db.get_flow(
+        reference,
+        {ref_material: value_150},
+        p_input,
+        p1,
+        'Flow 1 & 2')
+
+    f3 = test_db.get_flow(
+        reference,
+        {ref_material: value_300},
+        p1,
+        p2,
+        'Flow 3')
+
+    f4 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p2,
+        p1,
+        'Flow 4')
+
+    f5 = test_db.get_flow(
+        reference,
+        {ref_material: value_160},
+        p2,
+        p3,
+        'Flow 5')
+
+    external_inflows = {f1}
+    internal_flows = {f3, f4, f5}
+    external_outflows = set()
+    stocks = set()
+    print("Model built Thu 10:41")
+
+    return (
+        external_inflows,
+        internal_flows,
+        external_outflows,
+        stocks,
+        dict(),
+        dict())
+
+
+def get_umis_diagram_lognormal_and_normal_test():
+    test_db = DbStub()
+
+    ref_origin_space = test_db.get_space_by_num(1)
+    ref_destination_space = test_db.get_space_by_num(2)
+    ref_material = test_db.get_material_by_num(1)
+    ref_time = test_db.get_time_by_num(1)
+
+    reference = StafReference(
+        ref_time,
+        ref_material)
+
+    p_input = test_db.get_umis_process(
+        ref_destination_space,
+        'Distribution',
+        "Input Process")
+
+    p1 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 1")
+
+    p2 = test_db.get_umis_process(
+        ref_origin_space,
+        'Distribution',
+        "Process 2")
+
+    p3 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 3")
+
+    norm_uncert_300 = NormalUncertainty(
+        mean=300, standard_deviation=30)
+    
+    lognorm_uncert_150 = LognormalUncertainty(
+        mean=np.log(150), standard_deviation=0.25)
+    lognorm_uncert_160 = LognormalUncertainty(
+        mean=np.log(160), standard_deviation=0.25)
+
+    uniform_uncert_0_1000 = UniformUncertainty(lower=0, upper=1000)
+
+    value_300 = test_db.get_value(300, norm_uncert_300)
+    lognorm_value_160 = test_db.get_value(160, lognorm_uncert_160)
+    lognorm_value_150 = test_db.get_value(150, lognorm_uncert_150)
+
+    value_unknown = test_db.get_value(500, uniform_uncert_0_1000)
+
+    f1 = test_db.get_flow(
+        reference,
+        {ref_material: lognorm_value_150},
+        p_input,
+        p1,
+        'Flow 1 & 2')
+
+    f3 = test_db.get_flow(
+        reference,
+        {ref_material: value_300},
+        p1,
+        p2,
+        'Flow 3')
+
+    f4 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p2,
+        p1,
+        'Flow 4')
+
+    f5 = test_db.get_flow(
+        reference,
+        {ref_material: lognorm_value_160},
+        p2,
+        p3,
+        'Flow 5')
+
+    external_inflows = {f1}
+    internal_flows = {f3, f4, f5}
+    external_outflows = set()
+    stocks = set()
+    print("Model built Tue 12:36")
+
+    return (
+        external_inflows,
+        internal_flows,
+        external_outflows,
+        stocks,
+        dict(),
+        dict())
+
+
+def get_umis_diagram_just_tc():
+    test_db = DbStub()
+
+    ref_origin_space = test_db.get_space_by_num(1)
+    ref_destination_space = test_db.get_space_by_num(2)
+    ref_material = test_db.get_material_by_num(1)
+    ref_time = test_db.get_time_by_num(1)
+
+    reference = StafReference(
+        ref_time,
+        ref_material)
+
+    p_input = test_db.get_umis_process(
+        ref_destination_space,
+        'Distribution',
+        "Input Process")
+
+    p1 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 1")
+
+    p2 = test_db.get_umis_process(
+        ref_origin_space,
+        'Distribution',
+        "Process 2")
+
+    p3 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 3")
+
+    norm_uncert_160 = NormalUncertainty(
+        mean=160, standard_deviation=10)
+    
+    uniform_uncert_0_1000 = UniformUncertainty(lower=0, upper=1000)
+
+    norm_value_160 = test_db.get_value(160, norm_uncert_160)
+
+    value_unknown = test_db.get_value(500, uniform_uncert_0_1000)
+
+    f1 = test_db.get_flow(
+        reference,
+        {ref_material: norm_value_160},
+        p_input,
+        p1,
+        'Flow 1 & 2')
+
+    f3 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p1,
+        p2,
+        'Flow 3')
+
+    f4 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p2,
+        p1,
+        'Flow 4')
+
+    f5 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p2,
+        p3,
+        'Flow 5')
+
+    external_inflows = {f1}
+    internal_flows = {f3, f4, f5}
+    external_outflows = set()
+    stocks = set()
+    print("Model built Tue 19:01")
+
+    tc_observation_table = {
+        p2.diagram_id: {
+            p3.diagram_id: Constant(49.5),
+            p1.diagram_id: Constant(49.5)
+        }
+    }
+    return (
+        external_inflows,
+        internal_flows,
+        external_outflows,
+        stocks,
+        dict(),
+        tc_observation_table)
+
+
+def get_umis_diagram_mat_reconc():
+    test_db = DbStub()
+
+    ref_origin_space = test_db.get_space_by_num(1)
+    ref_destination_space = test_db.get_space_by_num(2)
+    ref_material = test_db.get_material_by_num(1)
+    ref_time = test_db.get_time_by_num(1)
+
+    comp_material = test_db.get_material_by_num(2)
+
+    reference = StafReference(
+        ref_time,
+        ref_material)
+
+    p_input = test_db.get_umis_process(
+        ref_destination_space,
+        'Distribution',
+        "Input Process")
+
+    p1 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 1")
+
+    p2 = test_db.get_umis_process(
+        ref_origin_space,
+        'Distribution',
+        "Process 2")
+
+    p3 = test_db.get_umis_process(
+        ref_origin_space,
+        'Transformation',
+        "Process 3")
+
+    norm_uncert_480_30 = NormalUncertainty(mean=480, standard_deviation=30)
+    norm_uncert_300_30 = NormalUncertainty(mean=300, standard_deviation=30)
+    norm_uncert_256_10 = NormalUncertainty(mean=256, standard_deviation=10)
+    norm_uncert_256_16 = NormalUncertainty(mean=256, standard_deviation=16)   
+    norm_uncert_160_16 = NormalUncertainty(mean=160, standard_deviation=16)
+
+    uniform_uncert_0_1000 = UniformUncertainty(lower=0, upper=1000)
+
+    value_480_30 = test_db.get_value(480, norm_uncert_480_30)
+    value_300_30 = test_db.get_value(300, norm_uncert_300_30)
+    value_256_10 = test_db.get_value(256, norm_uncert_256_10)
+    value_256_16 = test_db.get_value(256, norm_uncert_256_16)
+    value_160_16 = test_db.get_value(160, norm_uncert_160_16)
+
+    value_unknown = test_db.get_value(500, uniform_uncert_0_1000)
+
+    f1 = test_db.get_flow(
+        reference,
+        {comp_material: value_256_10},
+        p_input,
+        p1,
+        'Flow 1 & 2')
+
+    f3 = test_db.get_flow(
+        reference,
+        {ref_material: value_300_30},
+        p1,
+        p2,
+        'Flow 3')
+
+    f4 = test_db.get_flow(
+        reference,
+        {ref_material: value_unknown},
+        p2,
+        p1,
+        'Flow 4')
+
+    f5 = test_db.get_flow(
+        reference,
+        {comp_material: value_256_16},
+        p2,
+        p3,
+        'Flow 5')
+
+    external_inflows = {f1}
+    internal_flows = {f3, f4, f5}
+    external_outflows = set()
+    stocks = set()
+    print("Model built Thu 18:29")
+
+    tc_observation_table = {
+        p2.diagram_id: {
+            p3.diagram_id: Constant(49.5),
+            p1.diagram_id: Constant(49.5)
+        }
+    }
+
+    material_table = {comp_material: NormalUncertainty(0.625, 0.05)}
+
+    return (
+        external_inflows,
+        internal_flows,
+        external_outflows,
+        stocks,
+        material_table,
+        tc_observation_table)
 
 
 def get_umis_diagram_cycle():
@@ -527,7 +1218,7 @@ def get_umis_diagram_cycle_mat_reconc():
     external_outflows = {f8, f9, f10}
     stocks = {s1, s2}
 
-    material_table = {comp_material: Constant(0.625)}
+    material_table = {comp_material: NormalUncertainty(0.625, 0.006)}
     print("Cycle Stocked - Fri 17:02")
     return (
         external_inflows,
@@ -625,8 +1316,6 @@ def get_umis_diagram_cycle_just_tcs():
         p2,
         p3,
         'f2')
-    
-    f2_dc = DistributionCoefficient(p3.diagram_id, 0.7)
 
     f3 = test_db.get_flow(
         reference,
@@ -634,9 +1323,6 @@ def get_umis_diagram_cycle_just_tcs():
         p2,
         p4,
         'f3')
-
-    f3_dc = DistributionCoefficient(p4.diagram_id, 0.3)
-    p2_tc = DistributionCoefficients([f2_dc, f3_dc])
 
     f4 = test_db.get_flow(
         reference,
@@ -698,9 +1384,6 @@ def get_umis_diagram_cycle_just_tcs():
         p3,
         'fcyc')
 
-    fcyc_dc = DistributionCoefficient(p3.diagram_id, 0.18)
-    p5_tc = DistributionCoefficients([f6_dc, f7_dc, fcyc_dc])
-
     s1 = test_db.get_stock(
         reference,
         {ref_material: value_unknown},
@@ -708,8 +1391,6 @@ def get_umis_diagram_cycle_just_tcs():
         'Net',
         's1'
     )
-
-    p4_tc = TransformationCoefficient(0.34, 0.33, 0.35)
 
     s2 = test_db.get_stock(
         reference,
@@ -719,24 +1400,22 @@ def get_umis_diagram_cycle_just_tcs():
         's2'
     )
 
-    p7_tc = TransformationCoefficient(0.5, 0.49, 0.51)
-
     external_inflows = {f1}
     internal_flows = {fcyc, f2, f3, f4, f5, f6, f7}
     external_outflows = {f8, f9, f10}
     stocks = {s1, s2}
 
-    transformation_obs = {
-        p4.diagram_id: p4_tc,
-        p7.diagram_id: p7_tc
+    tc_observations_table = {
+        p2.diagram_id: {
+            p3.diagram_id: Constant(70),
+            p4.diagram_id: Constant(30)
+        },
+        p4.diagram_id: {
+            p6.diagram_id: NormalUncertainty(0.66, 0.05)
+        }
     }
 
-    distribution_obs = {
-        p2.diagram_id: p2_tc,
-        p5.diagram_id: p5_tc
-    }
-
-    print("Cycle Stocked just tcs- Wed 16:24")
+    print("Cycle Stocked just tcs- Tue 18:54")
     return (
         external_inflows,
         internal_flows,

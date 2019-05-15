@@ -29,35 +29,60 @@ def make_samples_dict(
     samples_dict = {}
 
     samples_dict['External Inflows'] = {}
+    samples_dict['External Inflows']['Stafs'] = {}
+    samples_dict['External Inflows']['CCs'] = {}
+
     for flow in external_inflows:
-        input_name = "Input Flow: " + flow.name
-        samples = get_input_samples(
+        input_staf_name = flow.name
+        staf_samples = get_input_samples(
             flow, math_model.INPUT_VAR_NAME, trace, math_model)
-        samples_dict['External Inflows'][input_name] = samples
+        samples_dict['External Inflows']['Stafs'][input_staf_name] = \
+            staf_samples
+
+        input_cc_name = "Input Flow CC: " + flow.name
+        cc_samples = get_input_samples(
+            flow, math_model.INPUT_CC_VAR_NAME, trace, math_model)
+
+        samples_dict['External Inflows']['CCs'][input_cc_name] = \
+            cc_samples
         
     samples_dict['Internal Stafs'] = {}
+    samples_dict['Internal Stafs']['Stafs'] = {}
+    samples_dict['Internal Stafs']['TCs'] = {}
+    samples_dict['Internal Stafs']['CCs'] = {}
     for staf in internal_stafs:
-        staf_name = "Internal Staf: " + staf.name
+        staf_name = staf.name
+
         if staf.origin_process.process_type == 'Storage':
             staf_samples = get_input_samples(
                 staf, math_model.INPUT_VAR_NAME, trace, math_model)
+
+            cc_samples = get_input_samples(
+                staf, math_model.INPUT_CC_VAR_NAME, trace, math_model)
+
+            samples_dict['Internal Stafs']['TCs'][staf_name] = [0]
 
         else:
             staf_samples = get_staf_samples(
                 staf, math_model.STAF_VAR_NAME, trace, math_model)
 
-            tc_name = "TC: " + staf.name
+            cc_samples = get_staf_samples(
+                staf, math_model.STAF_CC_VAR_NAME, trace, math_model)
+
             tc_samples = get_staf_samples(
                 staf, math_model.TC_VAR_NAME, trace, math_model)
 
-            samples_dict['Internal Stafs'][tc_name] = tc_samples
+            samples_dict['Internal Stafs']['TCs'][staf_name] = tc_samples
 
-        samples_dict['Internal Stafs'][staf_name] = staf_samples
+        samples_dict['Internal Stafs']['Stafs'][staf_name] = staf_samples
+        samples_dict['Internal Stafs']['CCs'][staf_name] = cc_samples
 
     samples_dict['External Outflows'] = {}
+    samples_dict['External Outflows']['Stafs'] = {}
+    samples_dict['External Outflows']['TCs'] = {}
+    samples_dict['External Outflows']['CCs'] = {}
     for flow in external_outflows:
-        staf_name = "Output Flow: " + flow.name
-        tc_name = "TC: " + flow.name
+        staf_name = flow.name
 
         staf_samples = get_staf_samples(
             flow, math_model.STAF_VAR_NAME, trace, math_model)
@@ -65,9 +90,12 @@ def make_samples_dict(
         tc_samples = get_staf_samples(
             flow, math_model.TC_VAR_NAME, trace, math_model)
 
-        samples_dict['External Outflows'][staf_name] = staf_samples
-        samples_dict['External Outflows'][tc_name] = tc_samples
-        
+        cc_samples = get_staf_samples(
+            flow, math_model.STAF_CC_VAR_NAME, trace, math_model)
+
+        samples_dict['External Outflows']['Stafs'][staf_name] = staf_samples
+        samples_dict['External Outflows']['TCs'][staf_name] = tc_samples
+        samples_dict['External Outflows']['CCs'][staf_name] = cc_samples
     return samples_dict
 
 
@@ -138,25 +166,32 @@ def make_estimates_dict(
 
         estimates_dict['External Outflows'][staf_name] = staf_estimates
         estimates_dict['External Outflows'][tc_name] = tc_estimates
-            
+
     return estimates_dict
 
 
 def plot_posteriors(samples_dict):
-    for param_type, param_dict in samples_dict.items():
-        num_params = len(param_dict.keys())
+    for umis_type, staf_dict in samples_dict.items():
+        param_dict = list(staf_dict.values())[0]
+        num_params = len(param_dict.values())
         plot_width = 3
-        plot_height = math.ceil(num_params/plot_width)
-        fig = plt.figure(figsize=(plot_width*3, plot_height*3))
-        i = 1
-        for name, samples in param_dict.items():
-            ax = fig.add_subplot(plot_height, plot_width, i, title=name)
-            try:
-                sns.kdeplot(samples, axes=ax)
-            except Exception:
-                ax.hist(samples)
-            i = i+1
-        fig.suptitle(param_type, y=1.08)
+        plot_height = num_params
+        fig = plt.figure(
+            figsize=(plot_width*5, plot_height*4), facecolor='w')
+        plot_col_ind = 1
+        for param_type, param_dict in staf_dict.items():
+            plot_row_ind = 0
+            for name, samples in param_dict.items():
+                title = "{}: {}".format(param_type, name)
+                i = plot_row_ind*plot_width + plot_col_ind
+                ax = fig.add_subplot(plot_height, plot_width, i, title=title)
+                try:
+                    sns.kdeplot(samples, axes=ax)
+                except Exception:
+                    ax.hist(samples)
+                plot_row_ind = plot_row_ind+1
+            plot_col_ind = plot_col_ind+1
+        fig.suptitle(umis_type, y=1.08)
         plt.tight_layout(pad=0.4)
 
 
@@ -183,15 +218,20 @@ def display_parameters(
         trace,
         math_model)
 
-    estimates_dict = make_estimates_dict(
-        external_inflows,
-        internal_flows,
-        external_outflows,
-        map_estimate,
-        math_model)
+    try:
+        estimates_dict = make_estimates_dict(
+            external_inflows,
+            internal_flows,
+            external_outflows,
+            map_estimate,
+            math_model)
+
+        display_estimates(estimates_dict)
+
+    except Exception:
+        print("Couldn't do map")
 
     plot_posteriors(samples_dict)
-    display_estimates(estimates_dict)
 
 
 def print_umis_diagram(res_inflows, res_dict, res_outflows):
@@ -231,3 +271,11 @@ def plot_var(trace, var_name, row=None, col=None):
         ax.hist(samples)
     plt.show()
 
+
+def compare_plots(pairs, titles):
+    for i, (prior, posterior) in enumerate(pairs):
+        fig = plt.figure(facecolor='w')
+        ax = sns.kdeplot(prior, color='b')
+        ax = sns.kdeplot(posterior, color='r', ax=ax)
+        fig.suptitle(titles[i])
+    plt.show()

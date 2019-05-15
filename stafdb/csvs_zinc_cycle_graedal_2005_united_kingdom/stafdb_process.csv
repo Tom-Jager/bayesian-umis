@@ -1,0 +1,19 @@
+name,code,process_id_parent,is_separator,process_type
+Import,-----,None,False,Distribution
+"Production: Mill, Smelter, Refinery – Transformation",-----,None,False,Transformation
+"Production: Mill, Smelter, Refinery – Distribution",-----,None,False,Distribution
+"Production: Mill, Smelter, Refinery – Stock",-----,None,False,Storage
+Production: Mass balance,-----,None,False,Transformation
+Fabrication and Manufacturing – Transformation,-----,None,False,Transformation
+Fabrication and Manufacturing – Distribution,-----,None,False,Distribution
+Use – Transformation,-----,None,False,Transformation
+Use – Distribution,-----,None,False,Distribution
+Use – Stock,-----,None,False,Storage
+Waste Management – Tranformation,-----,None,False,Transformation
+Waste Management – Distribution,-----,None,False,Distribution
+Waste Management – Mass Balance,-----,None,False,Transformation
+Environment,-----,None,False,Transformation
+Environment – Stock,-----,None,False,Storage
+Semis Export,-----,None,False,Transformation
+Finished products export,-----,None,False,Transformation
+Zinc Scrap export,-----,None,False,Transformation

@@ -39,10 +39,13 @@ class DbStub():
             material_val: Dict[Material, Value],
             origin: UmisProcess,
             destination: UmisProcess,
-            name_prefix: str = ''):
+            name: str = ''):
 
         stafdb_id = "F{}".format(self._flow_id_c)
-        name = "{}Flow{}".format(name_prefix, self._flow_id_c)
+
+        if name == '':
+            name = "Flow{}".format(self._flow_id_c)
+        
         flow = Flow(
             stafdb_id,
             name,
@@ -50,7 +53,7 @@ class DbStub():
             origin,
             destination,
             material_val)
-        print("|{}|".format(stafdb_id))
+        # print("|{}|".format(stafdb_id))
         self._flow_id_c += 1
         return flow
 
@@ -60,10 +63,12 @@ class DbStub():
             material_val: Dict[Material, Value],
             origin_process: UmisProcess,
             stock_type: str,
-            name_prefix: str = ''):
+            name: str = ''):
 
         stafdb_id = "St{}".format(self._stock_id_c)
-        name = "{}Stock{}".format(name_prefix, self._stock_id_c)
+        
+        if name == '':
+            name = "Stock{}".format(self._stock_id_c)
 
         storage_process = self.get_umis_process(
             origin_process.reference_space,
@@ -78,7 +83,7 @@ class DbStub():
             material_val)
 
         self._stock_id_c += 1
-        print("|{}|".format(stafdb_id))
+        # print("|{}|".format(stafdb_id))
         return stock
 
     def get_stock_value(
@@ -89,18 +94,20 @@ class DbStub():
         value_id = "V{}".format(self._value_id_c)
 
         self._value_id_c += 1
-        print("|{}|".format(value_id))
+        # print("|{}|".format(value_id))
         return StockValue(value_id, quantity, uncertainty, "g", "Net")
 
     def get_umis_process(
             self,
             reference_space: Space,
             process_type: str,
-            name_prefix: str = ''):
+            name: str = ''):
 
         stafdb_id = "P{}".format(self._process_id_c)
         code = "Code{}".format(self._process_id_c)
-        name = "{}Process{}".format(name_prefix, self._process_id_c)
+        
+        if name == '':
+            name = "Process{}".format(self._process_id_c)
 
         process = UmisProcess(
             stafdb_id,
@@ -112,7 +119,7 @@ class DbStub():
             process_type)
 
         self._process_id_c += 1
-        print("|{}|".format(stafdb_id))
+        # print("|{}|".format(stafdb_id))
         return process
 
     def get_space_by_num(self, num: int):        
@@ -127,24 +134,24 @@ class DbStub():
             stafdb_id = "Sp2"
             name = "Edinburgh"
 
-        print("|{}|".format(stafdb_id))
+        # print("|{}|".format(stafdb_id))
         return Space(stafdb_id, name)
 
     def get_time_by_num(self, num: int):
 
         if num == 1:
-            print("|T1|")
+            # print("|T1|")
             return Timeframe("T1", 2000, 2000)
 
-        print("|T2|")        
+        # print("|T2|")        
         return Timeframe("T2", 2001, 2001)
 
     def get_material_by_num(self, num: int):
         if num == 1:
-            print("|M1|")
+            # print("|M1|")
             return Material("M1", "CodeM1", "Iron", "Parent", False)
 
-        print("|M2|")
+        # print("|M2|")
         return Material("M2", "CodeM2", "Nickel", "Parent", False)
 
     def get_value(
@@ -155,7 +162,7 @@ class DbStub():
         value_id = "V{}".format(self._value_id_c)
 
         self._value_id_c += 1
-        print("|{}|".format(value_id))
+        # print("|{}|".format(value_id))
         return Value(value_id, quantity, uncertainty, "g")
 
 

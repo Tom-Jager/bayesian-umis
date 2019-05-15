@@ -3,15 +3,37 @@
 \contentsline {subsection}{\numberline {1.1.1}Industrial Ecology Methodology}{1}{subsection.1.1.1}
 \contentsline {section}{\numberline {1.2}Unifying Industrial Ecology}{2}{section.1.2}
 \contentsline {subsection}{\numberline {1.2.1}STAFDB and UMIS}{2}{subsection.1.2.1}
-\contentsline {subsubsection}{UMIS Terminology}{3}{section*.7}
+\contentsline {subsection}{\numberline {1.2.2}UMIS Terminology}{3}{subsection.1.2.2}
 \contentsline {subsubsection}{Divergent Disaggregation}{4}{section*.8}
-\contentsline {subsubsection}{Mass Balancing}{4}{section*.9}
+\contentsline {subsection}{\numberline {1.2.3}Mass Balancing}{4}{subsection.1.2.3}
 \contentsline {section}{\numberline {1.3}Uncertainty in IE}{6}{section.1.3}
 \contentsline {subsection}{\numberline {1.3.1}What is uncertainty?}{6}{subsection.1.3.1}
 \contentsline {subsection}{\numberline {1.3.2}Incorporating Uncertainty into UMIS}{7}{subsection.1.3.2}
 \contentsline {section}{\numberline {1.4}Aims}{8}{section.1.4}
 \contentsline {chapter}{\numberline {2}Technical Background}{9}{chapter.2}
-\contentsline {chapter}{\numberline {3}Project Execution}{11}{chapter.3}
-\contentsline {chapter}{\numberline {4}Critical Evaluation}{13}{chapter.4}
-\contentsline {chapter}{\numberline {5}Conclusion}{15}{chapter.5}
-\contentsline {chapter}{\numberline {A}An Example Appendix}{17}{appendix.A}
+\contentsline {section}{\numberline {2.1}Sensitivity Analysis}{10}{section.2.1}
+\contentsline {section}{\numberline {2.2}Gaussian Error Propagation}{10}{section.2.2}
+\contentsline {section}{\numberline {2.3}The Possibilistic Approach}{11}{section.2.3}
+\contentsline {section}{\numberline {2.4}Probabilistic approaches}{12}{section.2.4}
+\contentsline {subsection}{\numberline {2.4.1}Monte Carlo Simulations}{13}{subsection.2.4.1}
+\contentsline {subsection}{\numberline {2.4.2}Bayesian Inference}{13}{subsection.2.4.2}
+\contentsline {subsubsection}{Monte Carlo Markov Chain Algorithms}{14}{section*.11}
+\contentsline {subsubsection}{Independence Sampler}{15}{section*.13}
+\contentsline {subsubsection}{Incremental MFA}{16}{section*.15}
+\contentsline {subsubsection}{Hamiltonian Monte Carlo and the No-U-Turn sampler}{17}{section*.16}
+\contentsline {chapter}{\numberline {3}Project Execution}{19}{chapter.3}
+\contentsline {section}{\numberline {3.1}Overview}{19}{section.3.1}
+\contentsline {section}{\numberline {3.2}Constructing the UMIS diagram}{19}{section.3.2}
+\contentsline {subsection}{\numberline {3.2.1}STAFDB Prototype}{19}{subsection.3.2.1}
+\contentsline {subsection}{\numberline {3.2.2}UMIS Diagram}{20}{subsection.3.2.2}
+\contentsline {section}{\numberline {3.3}Constructing the Mathematical Model}{22}{section.3.3}
+\contentsline {subsection}{\numberline {3.3.1}A System of Equations}{22}{subsection.3.3.1}
+\contentsline {subsection}{\numberline {3.3.2}Representing Model Parameters}{23}{subsection.3.3.2}
+\contentsline {subsubsection}{Representing TCs}{23}{section*.21}
+\contentsline {subsection}{\numberline {3.3.3}Model Construction}{24}{subsection.3.3.3}
+\contentsline {subsubsection}{Stage 1: Defining Parameter Priors}{26}{section*.24}
+\contentsline {subsubsection}{Stage 2: Create Model Parameters and Equations}{27}{section*.25}
+\contentsline {chapter}{\numberline {4}Critical Evaluation}{29}{chapter.4}
+\contentsline {chapter}{\numberline {5}Conclusion}{31}{chapter.5}
+\contentsline {chapter}{\numberline {A}Appendix A}{33}{appendix.A}
+\contentsline {section}{\numberline {A.1}STAFDB Entity Relationship Diagram}{33}{section.A.1}

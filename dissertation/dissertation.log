@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2019.2.28)  21 APR 2019 11:28
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2019.2.28)  6 MAY 2019 11:06
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -401,14 +401,37 @@ Package: dtklogos 2014/11/15 v2.2 LaTeX wrapper for `hologo' (RN,HV)
 Package: hologo 2017/05/01 v1.13 A logo collection with bookmark support (HO)
 )) (/home/tom/texmf/tex/latex/comment/comment.sty
 \CommentStream=\write4
- Excluding comment 'comment') (/home/tom/texmf/tex/latex/parskip/parskip.sty
+ Excluding comment 'comment') (/usr/share/texlive/texmf-dist/tex/latex/tools/bm.sty
+Package: bm 2017/01/16 v1.2c Bold Symbol Support (DPC/FMi)
+\symboldoperators=\mathgroup6
+\symboldletters=\mathgroup7
+\symboldsymbols=\mathgroup8
+LaTeX Font Info:    Redeclaring math alphabet \mathbf on input line 141.
+LaTeX Info: Redefining \bm on input line 207.
+) (/usr/share/texlive/texmf-dist/tex/latex/caption/caption.sty
+Package: caption 2016/02/21 v3.3-144 Customizing captions (AR)
+ (/usr/share/texlive/texmf-dist/tex/latex/caption/caption3.sty
+Package: caption3 2016/05/22 v1.7-166 caption3 kernel (AR)
+Package caption3 Info: TeX engine: e-TeX on input line 67.
+\captionmargin=\dimen144
+\captionmargin@=\dimen145
+\captionwidth=\dimen146
+\caption@tempdima=\dimen147
+\caption@indent=\dimen148
+\caption@parindent=\dimen149
+\caption@hangindent=\dimen150
+)
+\c@ContinuedFloat=\count156
+Package caption Info: hyperref package is loaded.
+Package caption Info: listings package is loaded.
+) (/home/tom/texmf/tex/latex/parskip/parskip.sty
 Package: parskip 2001/04/09 non-zero parskip adjustments
 )
-Package hyperref Info: Option `colorlinks' set `true' on input line 83.
+Package hyperref Info: Option `colorlinks' set `true' on input line 86.
 
 
 Package hyperref Warning: Option `bookmarks' has already been used,
-(hyperref)                setting the option has no effect on input line 83.
+(hyperref)                setting the option has no effect on input line 86.
 
 ) (/home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/dissertation.aux)
 \openout1 = `dissertation.aux'.
@@ -429,16 +452,16 @@ LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 37.
 LaTeX Font Info:    ... okay on input line 37.
  (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count156
-\scratchdimen=\dimen144
+\scratchcounter=\count157
+\scratchdimen=\dimen151
 \scratchbox=\box39
-\nofMPsegments=\count157
-\nofMParguments=\count158
+\nofMPsegments=\count158
+\nofMParguments=\count159
 \everyMPshowfont=\toks31
-\MPscratchCnt=\count159
-\MPscratchDim=\dimen145
-\MPnumerator=\count160
-\makeMPintoPDFobject=\count161
+\MPscratchCnt=\count160
+\MPscratchDim=\dimen152
+\MPnumerator=\count161
+\makeMPintoPDFobject=\count162
 \everyMPtoPDFconversion=\toks32
 ) (/usr/share/texlive/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
 Package: epstopdf-base 2016/05/15 v2.6 Base part for package epstopdf
@@ -489,7 +512,7 @@ File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 (/home/tom/texmf/tex/latex/fmtcount/fc-english.def
 File: fc-english.def 2016/01/12
 )
-\c@lstlisting=\count162
+\c@lstlisting=\count163
 \AtBeginShipoutBox=\box40
  (/usr/share/texlive/texmf-dist/tex/latex/graphics/color.sty
 Package: color 2016/07/10 v1.1e Standard LaTeX Color (DPC)
@@ -504,7 +527,7 @@ Package: nameref 2016/05/21 v2.44 Cross-referencing by name of section
  (/usr/share/texlive/texmf-dist/tex/generic/oberdiek/gettitlestring.sty
 Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
-\c@section@level=\count163
+\c@section@level=\count164
 )
 LaTeX Info: Redefining \ref on input line 37.
 LaTeX Info: Redefining \pageref on input line 37.
@@ -512,6 +535,8 @@ LaTeX Info: Redefining \nameref on input line 37.
 \@outlinefile=\write5
 \openout5 = `dissertation.out'.
 
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: End \AtBeginDocument code.
 
 Underfull \hbox (badness 10000) in paragraph at lines 52--52
 
@@ -543,201 +568,585 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
  [3] [4
 
-]
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 114.
- (/usr/share/texlive/texmf-dist/tex/latex/base/omscmr.fd
-File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
-)
-LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 114.
- [5] [6
+] Excluding 'comment' comment. [5] [6
 
-] [7] [8
+] Excluding 'comment' comment. [7] [8
 
 ] [9] [10
 
-] [11] [12
+] Excluding 'comment' comment. [11] [12
 
 ]
 Chapter 1.
 
-LaTeX Warning: Citation `tibbs1992industrial' on page 1 undefined on input line 238.
+LaTeX Warning: Citation `tibbs1992industrial' on page 1 undefined on input line 267.
 
 
-LaTeX Warning: Citation `white1994greening' on page 1 undefined on input line 238.
+LaTeX Warning: Citation `white1994greening' on page 1 undefined on input line 267.
 
 
-LaTeX Warning: Citation `robert2005sustainable' on page 1 undefined on input line 238.
+LaTeX Warning: Citation `robert2005sustainable' on page 1 undefined on input line 267.
 
 
-LaTeX Warning: Citation `rockstrom2009safe' on page 1 undefined on input line 238.
+LaTeX Warning: Citation `rockstrom2009safe' on page 1 undefined on input line 267.
 
 
-LaTeX Warning: Citation `müller2014modeling' on page 1 undefined on input line 238.
+LaTeX Warning: Citation `müller2014modeling' on page 1 undefined on input line 267.
 
 
-LaTeX Warning: Citation `esty1998industrial' on page 1 undefined on input line 238.
+LaTeX Warning: Citation `esty1998industrial' on page 1 undefined on input line 267.
 
 
-LaTeX Warning: Citation `myers2019unified' on page 1 undefined on input line 241.
+LaTeX Warning: Citation `myers2019unified' on page 1 undefined on input line 270.
 
 pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.242 
-       [1
+l.272 L
+       ife Cycle Assessments follow the environmental impact of a product sy... [1
 
 ]
 
-LaTeX Warning: Citation `ISO14040' on page 2 undefined on input line 243.
+LaTeX Warning: Citation `ISO14040' on page 2 undefined on input line 272.
 
 
-LaTeX Warning: Citation `mattila2012methodological' on page 2 undefined on input line 243.
+LaTeX Warning: Citation `mattila2012methodological' on page 2 undefined on input line 272.
 
 
-LaTeX Warning: Citation `wernet2016ecoinvent' on page 2 undefined on input line 243.
+LaTeX Warning: Citation `wernet2016ecoinvent' on page 2 undefined on input line 272.
 
 
-LaTeX Warning: Citation `chen2016building' on page 2 undefined on input line 245.
+LaTeX Warning: Citation `chen2016building' on page 2 undefined on input line 274.
 
 
-LaTeX Warning: Citation `müller2014modeling' on page 2 undefined on input line 247.
+LaTeX Warning: Citation `müller2014modeling' on page 2 undefined on input line 276.
 
 
-LaTeX Warning: Citation `chen2016building' on page 2 undefined on input line 250.
+LaTeX Warning: Citation `chen2016building' on page 2 undefined on input line 279.
 
 
-LaTeX Warning: Citation `pauliuk2015general' on page 2 undefined on input line 250.
+LaTeX Warning: Citation `pauliuk2015general' on page 2 undefined on input line 279.
 
 
-LaTeX Warning: Citation `ystafdb' on page 2 undefined on input line 253.
+LaTeX Warning: Citation `ystafdb' on page 2 undefined on input line 282.
 
 pdfTeX warning (ext4): destination with the same identifier (name{page.2}) has been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.254 
-       [2]
+l.284 D
+       isaggregation is where a property of data (e.g a process that data is... [2]
 
-LaTeX Warning: Citation `myers2019unified' on page 3 undefined on input line 255.
-
-
-LaTeX Warning: Citation `myers2019unified' on page 3 undefined on input line 257.
+LaTeX Warning: Citation `myers2019unified' on page 3 undefined on input line 284.
 
 
-LaTeX Warning: Citation `hertwich2018nullius' on page 3 undefined on input line 259.
+LaTeX Warning: Citation `myers2019unified' on page 3 undefined on input line 286.
 
 
-LaTeX Warning: Citation `MetabolismOfCities' on page 3 undefined on input line 259.
+LaTeX Warning: Citation `hertwich2018nullius' on page 3 undefined on input line 288.
 
 
-LaTeX Warning: Reference `umis_terms' on page 3 undefined on input line 262.
+LaTeX Warning: Citation `MetabolismOfCities' on page 3 undefined on input line 288.
 
 
-Overfull \hbox (2.47905pt too wide) in paragraph at lines 265--280
+LaTeX Warning: Reference `umis_terms' on page 3 undefined on input line 291.
+
+
+Overfull \hbox (2.47905pt too wide) in paragraph at lines 294--309
 [][] 
  []
 
 
-LaTeX Warning: Citation `pauliuk2015general' on page 3 undefined on input line 284.
+LaTeX Warning: Citation `pauliuk2015general' on page 3 undefined on input line 313.
 
 
-LaTeX Warning: Reference `fig:umis_aspects' on page 3 undefined on input line 284.
+LaTeX Warning: Reference `fig:umis_aspects' on page 3 undefined on input line 313.
 
 [3]
-<images/umis_aspects.jpg, id=100, 1073.00874pt x 1206.5075pt>
+
+LaTeX Warning: No positions in optional float specifier.
+               Default added (so using `tbp') on input line 319.
+
+<images/umis_aspects.jpg, id=97, 1073.00874pt x 1206.5075pt>
 File: images/umis_aspects.jpg Graphic file (type jpg)
 <use images/umis_aspects.jpg>
-Package pdftex.def Info: images/umis_aspects.jpg  used on input line 291.
+Package pdftex.def Info: images/umis_aspects.jpg  used on input line 321.
 (pdftex.def)             Requested size: 273.14923pt x 307.13066pt.
 
-
-LaTeX Warning: Citation `myers2019unified' on page 4 undefined on input line 292.
-
-
-LaTeX Warning: Citation `myers2019unified' on page 4 undefined on input line 292.
+LaTeX Warning: Citation `myers2019unified' on page 4 undefined on input line 322.
 
 
-LaTeX Warning: Citation `pauliuk2016prospective' on page 4 undefined on input line 297.
+LaTeX Warning: Citation `myers2019unified' on page 4 undefined on input line 322.
 
 
-LaTeX Warning: Citation `brunner2004practical' on page 4 undefined on input line 297.
+LaTeX Warning: Citation `pauliuk2016prospective' on page 4 undefined on input line 328.
+
+
+LaTeX Warning: Citation `brunner2004practical' on page 4 undefined on input line 328.
 
 [4] [5 </home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/images/umis_aspects.jpg>]
 
-LaTeX Warning: Citation `myers2019unified' on page 6 undefined on input line 318.
+LaTeX Warning: Citation `myers2019unified' on page 6 undefined on input line 356.
 
 
-LaTeX Warning: Citation `danius2001regional' on page 6 undefined on input line 322.
+LaTeX Warning: Citation `danius2001regional' on page 6 undefined on input line 360.
 
 
-LaTeX Warning: Citation `temursho201712' on page 6 undefined on input line 322.
+LaTeX Warning: Citation `temursho201712' on page 6 undefined on input line 360.
 
 
-LaTeX Warning: Citation `laner2014systematic' on page 6 undefined on input line 322.
+LaTeX Warning: Citation `laner2014systematic' on page 6 undefined on input line 360.
 
 
-LaTeX Warning: Citation `heijungs2004review' on page 6 undefined on input line 322.
-
-
-LaTeX Warning: Citation `ferson1996different' on page 6 undefined on input line 324.
-
-
-LaTeX Warning: Citation `laner2014systematic' on page 6 undefined on input line 324.
-
-
-LaTeX Warning: Citation `laner2014systematic' on page 6 undefined on input line 329.
-
-
-LaTeX Warning: Reference `fig:incorp uncertainty procedure' on page 6 undefined on input line 329.
-
-
-LaTeX Warning: Citation `laner2014systematic' on page 6 undefined on input line 364.
+LaTeX Warning: Citation `heijungs2004review' on page 6 undefined on input line 360.
 
 [6]
 
-LaTeX Warning: Citation `laner2016novel' on page 7 undefined on input line 370.
+LaTeX Warning: Citation `ferson1996different' on page 7 undefined on input line 362.
 
 
-LaTeX Warning: Citation `weidema1996data' on page 7 undefined on input line 370.
+LaTeX Warning: Citation `laner2014systematic' on page 7 undefined on input line 362.
 
 
-LaTeX Warning: Citation `hedbrant2001data' on page 7 undefined on input line 370.
+LaTeX Warning: Citation `laner2014systematic' on page 7 undefined on input line 368.
 
 
-LaTeX Warning: Reference `fig:incorp uncertainty procedure' on page 7 undefined on input line 372.
+LaTeX Warning: Reference `fig:incorp uncertainty procedure' on page 7 undefined on input line 368.
 
 
-LaTeX Warning: Citation `lupton2018incremental' on page 7 undefined on input line 372.
+LaTeX Warning: Citation `laner2014systematic' on page 7 undefined on input line 403.
 
-[7] Excluding 'comment' comment. [8]
+
+LaTeX Warning: Citation `laner2014systematic' on page 7 undefined on input line 403.
+
+[7]
+
+LaTeX Warning: Citation `laner2016novel' on page 8 undefined on input line 411.
+
+
+LaTeX Warning: Citation `weidema1996data' on page 8 undefined on input line 411.
+
+
+LaTeX Warning: Citation `hedbrant2001data' on page 8 undefined on input line 411.
+
+
+LaTeX Warning: Reference `fig:incorp uncertainty procedure' on page 8 undefined on input line 415.
+
+Excluding 'comment' comment. Excluding 'comment' comment. [8]
 Chapter 2.
-Excluding 'comment' comment. [9
 
-] [10
+LaTeX Warning: Citation `laner2014systematic' on page 9 undefined on input line 516.
+
+
+LaTeX Warning: Reference `eq:mass_balance_1' on page 9 undefined on input line 525.
+
+
+LaTeX Warning: Reference `eq:mass_balance_2' on page 9 undefined on input line 525.
+
+
+LaTeX Warning: Reference `eq:mass_balance_3' on page 9 undefined on input line 525.
+
+
+LaTeX Warning: Reference `eq:mass_balance_4' on page 9 undefined on input line 525.
+
+
+LaTeX Warning: Citation `laner2014systematic' on page 9 undefined on input line 528.
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [9
 
 ]
+
+LaTeX Warning: Citation `cencic2008material' on page 10 undefined on input line 531.
+
+
+LaTeX Warning: Reference `eq:mass_balance_1' on page 10 undefined on input line 531.
+
+
+LaTeX Warning: Reference `eq:mass_balance_2' on page 10 undefined on input line 531.
+
+
+LaTeX Warning: Reference `eq:mass_balance_3' on page 10 undefined on input line 531.
+
+
+LaTeX Warning: Reference `eq:mass_balance_4' on page 10 undefined on input line 531.
+
+
+LaTeX Warning: Citation `cencic2016nonlinear' on page 10 undefined on input line 533.
+
+
+LaTeX Warning: Reference `eq:objective_function' on page 10 undefined on input line 535.
+
+
+LaTeX Warning: Reference `eq:objective_function' on page 10 undefined on input line 544.
+
+
+LaTeX Warning: Citation `cencic2016nonlinear' on page 10 undefined on input line 544.
+
+[10]
+
+LaTeX Warning: Reference `sec:incorporating_uncertainty' on page 11 undefined on input line 548.
+
+
+LaTeX Warning: Citation `dubois2000fuzzy' on page 11 undefined on input line 552.
+
+
+LaTeX Warning: Citation `viertl2006beschreibung' on page 11 undefined on input line 552.
+
+
+LaTeX Warning: Citation `dvzubur2017fuzzy' on page 11 undefined on input line 552.
+
+
+LaTeX Warning: Reference `eq:mass_balance_1' on page 11 undefined on input line 557.
+
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 562.
+(/usr/share/texlive/texmf-dist/tex/latex/base/omscmr.fd
+File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 562.
+
+Underfull \vbox (badness 7186) has occurred while \output is active []
+
+ [11]
+
+LaTeX Warning: Reference `sec:incorporating_uncertainty' on page 12 undefined on input line 588.
+
+
+LaTeX Warning: Citation `wernet2016ecoinvent' on page 12 undefined on input line 588.
+
+
+LaTeX Warning: Citation `gottschalk2010probabilistic' on page 12 undefined on input line 588.
+
+[12]
+
+LaTeX Warning: Citation `gottschalk2010probabilistic' on page 13 undefined on input line 591.
+
+
+LaTeX Warning: Reference `eq:mass_balance_2' on page 13 undefined on input line 593.
+
+
+LaTeX Warning: Reference `eq:mass_balance_3' on page 13 undefined on input line 593.
+
+
+LaTeX Warning: Reference `eq:mass_balance_3' on page 13 undefined on input line 602.
+
+
+LaTeX Warning: Citation `green2015bayesian' on page 13 undefined on input line 606.
+
+
+LaTeX Warning: Citation `lupton2018incremental' on page 13 undefined on input line 606.
+
+[13]
+
+LaTeX Warning: Citation `green2015bayesian' on page 14 undefined on input line 624.
+
+
+LaTeX Warning: Reference `eq:bayes_theorem' on page 14 undefined on input line 624.
+
+
+LaTeX Warning: Citation `lupton2018incremental' on page 14 undefined on input line 631.
+
+
+LaTeX Warning: Reference `eq:bayes_theorem' on page 14 undefined on input line 637.
+
+
+LaTeX Warning: Reference `alg:monte_carlo' on page 14 undefined on input line 637.
+
+
+LaTeX Warning: No positions in optional float specifier.
+               Default added (so using `htbp') on input line 639.
+
+
+LaTeX Warning: Citation `cencic2018data' on page 14 undefined on input line 662.
+
+
+LaTeX Warning: Citation `cencic2015general' on page 14 undefined on input line 662.
+
+[14]
+
+LaTeX Warning: Reference `fig:cencic_manifold' on page 15 undefined on input line 676.
+
+
+LaTeX Warning: No positions in optional float specifier.
+               Default added (so using `tbp') on input line 688.
+
+
+LaTeX Warning: File `images/cencic_manifold.png' not found on input line 690.
+
+
+/home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/dissertation.tex:690: Package pdftex.def Error: File `images/cencic_manifold.png' not found: using draft setting.
+
+See the pdftex.def package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.690 ....5\textwidth]{images/cencic_manifold.png}
+                                                  
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+LaTeX Warning: Citation `cencic2015general' on page 15 undefined on input line 691.
+
+
+LaTeX Warning: Citation `cencic2015general' on page 15 undefined on input line 691.
+
+[15]
+
+LaTeX Warning: Citation `lupton2018incremental' on page 16 undefined on input line 700.
+
+
+LaTeX Warning: Reference `sec:model_construction' on page 16 undefined on input line 700.
+
+
+LaTeX Warning: Citation `salvatier2016probabilistic' on page 16 undefined on input line 700.
+
+[16]
+
+LaTeX Warning: Citation `betancourt2017conceptual' on page 17 undefined on input line 710.
+
+
+LaTeX Warning: Reference `alg:leapfrog' on page 17 undefined on input line 710.
+
+
+LaTeX Warning: No positions in optional float specifier.
+               Default added (so using `tbp') on input line 712.
+
+
+LaTeX Warning: File `images/hamiltonian_mcmc.png' not found on input line 714.
+
+
+/home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/dissertation.tex:714: Package pdftex.def Error: File `images/hamiltonian_mcmc.png' not found: using draft setting.
+
+See the pdftex.def package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.714 ...5\textwidth]{images/hamiltonian_mcmc.png}
+                                                  
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+LaTeX Warning: Citation `rogozhnikov_2016' on page 17 undefined on input line 715.
+
+
+LaTeX Warning: Citation `rogozhnikov_2016' on page 17 undefined on input line 715.
+
+
+LaTeX Warning: No positions in optional float specifier.
+               Default added (so using `htbp') on input line 719.
+
+
+LaTeX Warning: Citation `hoffman2014no' on page 17 undefined on input line 730.
+
+[17] Excluding 'comment' comment. [18]
 Chapter 3.
-[11] [12
+
+LaTeX Warning: Reference `fig:prototype_ern' on page 19 undefined on input line 804.
+
+
+LaTeX Warning: File `images/Prototype_STAFDB_ERD.png' not found on input line 808.
+
+
+/home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/dissertation.tex:808: Package pdftex.def Error: File `images/Prototype_STAFDB_ERD.png' not found: using draft setting.
+
+See the pdftex.def package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.808 ...graphics{images/Prototype_STAFDB_ERD.png}
+                                                  
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+LaTeX Warning: Citation `laner2014systematic' on page 19 undefined on input line 813.
+
+[19
+
+]
+
+LaTeX Warning: Reference `sec:prototype_stafdb' on page 20 undefined on input line 818.
+
+
+LaTeX Warning: Citation `myers2019unified' on page 20 undefined on input line 822.
+
+
+LaTeX Warning: Citation `pauliuk2015general' on page 20 undefined on input line 822.
+
+
+LaTeX Warning: Citation `klein' on page 20 undefined on input line 822.
+
+
+LaTeX Warning: Reference `fig:UmisDiagram' on page 20 undefined on input line 822.
+
+[20]
+
+LaTeX Warning: File `images/UMIS-data-models.png' not found on input line 826.
+
+
+/home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/dissertation.tex:826: Package pdftex.def Error: File `images/UMIS-data-models.png' not found: using draft setting.
+
+See the pdftex.def package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.826 ...=\textwidth]{images/UMIS-data-models.png}
+                                                  
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+LaTeX Warning: Citation `lupton2018incremental' on page 21 undefined on input line 835.
+
+
+LaTeX Warning: Citation `gottschalk2010probabilistic' on page 21 undefined on input line 835.
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [21]
+
+LaTeX Warning: Reference `eq:mass_balance_3' on page 22 undefined on input line 841.
+
+
+LaTeX Warning: Reference `eq:mass_balance_2' on page 22 undefined on input line 841.
+
+
+LaTeX Warning: Reference `eq:mass_balance_3' on page 22 undefined on input line 843.
+
+
+LaTeX Warning: Reference `eq:mass_balance_4' on page 22 undefined on input line 860.
+
+[22]
+Overfull \hbox (2.90135pt too wide) in paragraph at lines 887--888
+[]\OT1/cmr/m/n/10 where $\OML/cmm/m/it/10 F[]$ \OT1/cmr/m/n/10 are de-pen-dent ob-served pa-ram-e-ters whilst $\OML/cmm/m/it/10 A[]; Q; C[]$ \OT1/cmr/m/n/10 and $\OML/cmm/m/it/10 C[]$ \OT1/cmr/m/n/10 are free ob-served pa-ram-e-ters. 
+ []
+
+
+LaTeX Warning: Citation `dirichlet' on page 23 undefined on input line 897.
+
+
+LaTeX Warning: Reference `fig:dirichlet' on page 23 undefined on input line 897.
+
+[23]
+
+LaTeX Warning: File `images/dirichlet.png' not found on input line 901.
+
+
+/home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/dissertation.tex:901: Package pdftex.def Error: File `images/dirichlet.png' not found: using draft setting.
+
+See the pdftex.def package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.901 ...dth=0.75\textwidth]{images/dirichlet.png}
+                                                  
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+LaTeX Warning: Citation `dirichlet' on page 24 undefined on input line 902.
+
+
+LaTeX Warning: Citation `dirichlet' on page 24 undefined on input line 902.
+
+
+LaTeX Warning: Reference `fig:inference_engine_structure' on page 24 undefined on input line 907.
+
+[24]
+*geometry* verbose mode - [ newgeometry ] result:
+* driver: pdftex
+* paper: a4paper
+* layout: <same size as paper>
+* layoutoffset:(h,v)=(0.0pt,0.0pt)
+* modes: twoside 
+* h-part:(L,W,R)=(0.0pt, 597.50787pt, 0.0pt)
+* v-part:(T,H,B)=(0.0pt, 845.04684pt, 0.0pt)
+* \paperwidth=597.50787pt
+* \paperheight=845.04684pt
+* \textwidth=597.50787pt
+* \textheight=845.04684pt
+* \oddsidemargin=-72.26999pt
+* \evensidemargin=-72.26999pt
+* \topmargin=-102.33748pt
+* \headheight=12.0pt
+* \headsep=18.06749pt
+* \topskip=10.0pt
+* \footskip=25.29494pt
+* \marginparwidth=115.0pt
+* \marginparsep=7.0pt
+* \columnsep=10.0pt
+* \skip\footins=9.0pt plus 4.0pt minus 2.0pt
+* \hoffset=0.0pt
+* \voffset=0.0pt
+* \mag=1000
+* \@twocolumnfalse
+* \@twosidetrue
+* \@mparswitchtrue
+* \@reversemarginfalse
+* (1in=72.27pt=25.4mm, 1cm=28.453pt)
+
+
+
+LaTeX Warning: File `images/inference_engine_structure.png' not found on input line 913.
+
+
+/home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/dissertation.tex:913: Package pdftex.def Error: File `images/inference_engine_structure.png' not found: using draft setting.
+
+See the pdftex.def package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.913 ...h]{images/inference_engine_structure.png}
+                                                  
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+[25]
+
+LaTeX Warning: Reference `sec:representing_tcs' on page 26 undefined on input line 920.
+
+
+LaTeX Warning: Reference `sec:python_umis_diagram' on page 26 undefined on input line 920.
+
+
+LaTeX Warning: Reference `sec:representing_tcs' on page 26 undefined on input line 924.
+
+
+LaTeX Warning: Reference `eq:my_model_eq' on page 26 undefined on input line 931.
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [26
+
+
+] Excluding 'comment' comment. Excluding 'comment' comment. [27] [28
 
 ]
 Chapter 4.
-[13] [14
+Excluding 'comment' comment. [29] [30
 
 ]
 Chapter 5.
-[15] [16
+Excluding 'comment' comment. [31] [32
 
 ]
 No file dissertation.bbl.
 Appendix A.
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 658.
-[17
+Excluding 'comment' comment.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 1100.
+ [33
 
 ]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 658.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 1100.
  (/home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/dissertation.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 658.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 658.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1100.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1100.
 
 
 Package rerunfilecheck Warning: File `dissertation.out' has changed.
@@ -746,7 +1155,7 @@ Package rerunfilecheck Warning: File `dissertation.out' has changed.
 
 Package rerunfilecheck Info: Checksums for `dissertation.out':
 (rerunfilecheck)             Before: <no file>
-(rerunfilecheck)             After:  2CCEB4073AF9895201C5D4FAB14CEF19;568.
+(rerunfilecheck)             After:  09850AF333F4BC19944ECDA0ECB33E0E;1138.
 
 LaTeX Warning: There were undefined references.
 
@@ -755,18 +1164,18 @@ LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
 
  ) 
 Here is how much of TeX's memory you used:
- 11736 strings out of 494923
- 178501 string characters out of 6180742
- 410944 words of memory out of 5000000
- 14792 multiletter control sequences out of 15000+600000
- 9235 words of font info for 35 fonts, out of 8000000 for 9000
+ 12997 strings out of 494923
+ 200344 string characters out of 6180742
+ 434019 words of memory out of 5000000
+ 15935 multiletter control sequences out of 15000+600000
+ 11684 words of font info for 43 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 42i,14n,45p,2126b,355s stack positions out of 5000i,500n,10000p,200000b,80000s
-</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
-Output written on /home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/dissertation.pdf (31 pages, 474408 bytes).
+ 60i,15n,94p,2126b,525s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmbsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmib10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmmib7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on /home/tom/FourthYear/Thesis/Code/bayesian-umis/bayesumis/dissertation/dissertation.pdf (47 pages, 614681 bytes).
 PDF statistics:
- 257 PDF objects out of 1000 (max. 8388607)
- 206 compressed objects within 3 object streams
- 74 named destinations out of 1000 (max. 500000)
+ 459 PDF objects out of 1000 (max. 8388607)
+ 381 compressed objects within 4 object streams
+ 168 named destinations out of 1000 (max. 500000)
  11 words of extra memory for PDF output out of 10000 (max. 10000000)
 

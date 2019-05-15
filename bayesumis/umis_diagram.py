@@ -74,9 +74,9 @@ class UmisDiagram():
 
             if isinstance(staf, Stock):
 
-                if staf.origin_process == "Storage":
+                if staf.origin_process.process_type == "Storage":
                     graph_process = staf.destination_process
-                elif staf.destination_process == "Storage":
+                elif staf.destination_process.process_type == "Storage":
                     graph_process = staf.origin_process
                 else:
                     raise ValueError("At least one process must be a storage "

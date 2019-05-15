@@ -44,6 +44,7 @@ class UmisMathModel():
     INPUT_VAR_NAME = 'Inputs'
     INPUT_CC_VAR_NAME = 'Input CCs'
     STAF_VAR_NAME = 'Stafs'
+    STAF_CC_VAR_NAME = 'Staf CCs'
     TC_VAR_NAME = 'TCs'
 
     def __init__(
@@ -61,8 +62,8 @@ class UmisMathModel():
         umis_processes (Set[UmisProcess]): Set of the UmisProcesses in the
             model
 
-        process_stafs_dict (dict(str, set(Flow)): Dictionary mapping
-            process_id to the process' outflows
+        process_stafs_dict (dict(UmisProcess, set(Flow)): Dictionary mapping
+            a process to the process' outflows
 
         external_inflows (set(flow)): The inflows from outside the model to a
             process in the model
@@ -74,6 +75,13 @@ class UmisMathModel():
 
         reference_time (Timeframe): The timeframe over which the stocks and
             flows are modeled
+
+        material_reconc_table (dict(Material, Uncertainty)): Maps a material to
+            its concentration coefficient
+
+        tc_observation_table (dict(str, dict(str, Uncertainty))): Maps an
+            origin process id to a dictionary mapping the destination process
+            id to its transfer coefficient
         """
 
         self.reference_material = reference_material
@@ -86,7 +94,7 @@ class UmisMathModel():
 
         self.__id_math_process_dict: Dict[str, MathProcess] = {}
         self.__input_priors = InputPriors()
-        self.__staf_observations = StafObservations()
+        self.__dep_staf_priors = DepStafPriors()
         """ Maps a math process id to its math process """
 
         self.__create_math_processes(
@@ -95,7 +103,7 @@ class UmisMathModel():
 
         self.__create_input_priors(external_inflows)
 
-        self.__create_staf_observations(
+        self.__create_dependent_staf_priors(
             process_stafs_dict,
             external_outflows)
 
@@ -122,82 +130,68 @@ class UmisMathModel():
                 matrix_inverse(T.eye(num_processes) - tc_matrix.T),
                 input_sums[:, None])
 
-            stafs = pm.Deterministic(
-                self.STAF_VAR_NAME,
-                tc_matrix * process_throughputs[:, None])
+            stafs = tc_matrix * process_throughputs[:, None]
+
+            staf_ccs = self.__create_staf_ccs_matrix()
+
+            staf_ccs = pm.Deterministic(self.STAF_CC_VAR_NAME, staf_ccs)
+
+            reconciled_stafs = pm.Deterministic(
+                self.STAF_VAR_NAME, stafs / staf_ccs)
 
             (normal_staf_obs_matrix,
              normal_staf_means,
-             normal_staf_sds,
-             normal_ccs) = \
+             normal_staf_sds) = \
                 self.__create_staf_obs_matrices_normal(
-                    self.__staf_observations.normal_staf_obs)
+                    self.__dep_staf_priors.normal_dep_staf_priors)
 
             (lognormal_staf_obs_matrix,
              lognormal_staf_means,
-             lognormal_staf_sds,
-             lognormal_ccs) = \
+             lognormal_staf_sds) = \
                 self.__create_staf_obs_matrices_normal(
-                    self.__staf_observations.lognormal_staf_obs)
+                    self.__dep_staf_priors.lognormal_dep_staf_priors)
 
             (uniform_staf_obs_matrix,
              uniform_staf_lower,
-             uniform_staf_upper,
-             uniform_ccs) = \
+             uniform_staf_upper) = \
                 self.__create_staf_obs_matrices_uniform(
-                    self.__staf_observations.uniform_staf_obs)
-        
+                    self.__dep_staf_priors.uniform_dep_staf_priors)
+
             if len(normal_staf_means > 0):
-                normal_staf_obs_eqs = pm.Deterministic(
-                    'normal_staf_obs_eqs',
+                normal_dep_staf_eqs = pm.Deterministic(
+                    'normal_dep_staf_eqs',
                     T.tensordot(
-                        normal_staf_obs_matrix, stafs))
-
-                normal_ccs = pm.Deterministic('normal_ccs', normal_ccs)
-
-                reconciled_normal_eqs = \
-                    normal_staf_obs_eqs[:, None] / normal_ccs[:, None]
+                        normal_staf_obs_matrix, reconciled_stafs))
 
                 pm.Normal(
-                    'normal_staf_observations',
+                    'normal_dep_staf_priors',
                     mu=normal_staf_means[:, None],
                     sd=normal_staf_sds[:, None],
-                    observed=reconciled_normal_eqs[:, None])
+                    observed=normal_dep_staf_eqs[:, None])
 
             if len(lognormal_staf_means > 0):
-                lognormal_staf_obs_eqs = pm.Deterministic(
-                    'lognormal_staf_obs_eqs',
+                lognormal_dep_staf_eqs = pm.Deterministic(
+                    'lognormal_dep_staf_eqs',
                     T.tensordot(
-                        lognormal_staf_obs_matrix, stafs))
-
-                lognormal_ccs = pm.Deterministic(
-                    'lognormal_ccs', lognormal_ccs)
-
-                reconciled_lognormal_eqs = \
-                    lognormal_staf_obs_eqs[:, None] / lognormal_ccs[:, None]
+                        lognormal_staf_obs_matrix, reconciled_stafs))
 
                 pm.Lognormal(
-                    'lognormal_staf_observations',
+                    'lognormal_dep_staf_priors',
                     mu=lognormal_staf_means[:, None],
                     sd=lognormal_staf_sds[:, None],
-                    observed=reconciled_lognormal_eqs[:, None])
+                    observed=lognormal_dep_staf_eqs[:, None])
 
             if len(uniform_staf_lower > 0):
-                uniform_staf_obs_eqs = pm.Deterministic(
-                    'uniform_staf_obs_eqs',
+                uniform_dep_staf_eqs = pm.Deterministic(
+                    'uniform_dep_staf_eqs',
                     T.tensordot(
-                        uniform_staf_obs_matrix, stafs))
-
-                uniform_ccs = pm.Deterministic('uniform_ccs', uniform_ccs)
-
-                reconciled_uniform_eqs = \
-                    uniform_staf_obs_eqs[:, None] / uniform_ccs[:, None]
+                        uniform_staf_obs_matrix, reconciled_stafs))
 
                 pm.Uniform(
-                    'uniform_staf_observations',
+                    'uniform_dep_staf_priors',
                     lower=uniform_staf_lower[:, None],
                     upper=uniform_staf_upper[:, None],
-                    observed=reconciled_uniform_eqs[:, None])
+                    observed=uniform_dep_staf_eqs[:, None])
 
     def get_input_inds(self, staf: Staf):
         """ Gets the process index of the destination of the staf """
@@ -316,7 +310,6 @@ class UmisMathModel():
             cc_uncert)
 
         input_prior = InputPrior(staf_prior, cc_prior)
-
         self.__input_priors.stock_inputs_dict[dest_id] = input_prior
 
     def __create_input_and_cc_matrices(self):
@@ -347,6 +340,10 @@ class UmisMathModel():
 
         for process_id, stock_input in \
                 self.__input_priors.stock_inputs_dict.items():
+
+            process_index = self.__id_math_process_dict[process_id].process_ind
+
+            print("Adding stock input to process {}".format(process_id))
 
             stock_input_prior = stock_input.staf_prior
             stock_input_rv = stock_input_prior.create_param_rv()
@@ -396,7 +393,7 @@ class UmisMathModel():
 
                     if (staf_value is not None
                             and cc_uncert is not None):
-                        
+
                         staf_uncert = staf_value.uncertainty
 
                         self.__add_external_input_prior(
@@ -575,15 +572,67 @@ class UmisMathModel():
 
                     if value is not None or cc_uncert is not None:
                         self.__create_math_processes_from_staf(flow)
-    
-    def __create_staf_obs_matrices_normal(self, staf_obs):
+
+    def __create_staf_ccs_matrix(self):
+        """
+        Creates a Theano matrix storing all staf concentration coefficients
+        """
+        num_procs = len(self.__id_math_process_dict.keys())
+
+        staf_ccs_matrix = T.ones((num_procs, num_procs))
+
+        for dep_staf_prior in self.__dep_staf_priors.normal_dep_staf_priors:
+            cc_prior: ParamPrior = dep_staf_prior.cc_prior
+
+            row_ind = \
+                self.__id_math_process_dict[cc_prior.origin_id].process_ind
+
+            col_ind = \
+                self.__id_math_process_dict[cc_prior.dest_id].process_ind
+
+            cc_rv = cc_prior.create_param_rv()
+
+            staf_ccs_matrix = T.set_subtensor(
+                staf_ccs_matrix[row_ind, col_ind], cc_rv)
+
+        for dep_staf_prior in self.__dep_staf_priors.lognormal_dep_staf_priors:
+            cc_prior: ParamPrior = dep_staf_prior.cc_prior
+
+            row_ind = \
+                self.__id_math_process_dict[cc_prior.origin_id].process_ind
+
+            col_ind = \
+                self.__id_math_process_dict[cc_prior.dest_id].process_ind
+
+            cc_rv = cc_prior.create_param_rv()
+
+            staf_ccs_matrix = T.set_subtensor(
+                staf_ccs_matrix[row_ind, col_ind], cc_rv)
+
+        for dep_staf_prior in self.__dep_staf_priors.uniform_dep_staf_priors:
+            cc_prior: ParamPrior = dep_staf_prior.cc_prior
+
+            row_ind = \
+                self.__id_math_process_dict[cc_prior.origin_id].process_ind
+
+            col_ind = \
+                self.__id_math_process_dict[cc_prior.dest_id].process_ind
+
+            cc_rv = cc_prior.create_param_rv()
+
+            staf_ccs_matrix = T.set_subtensor(
+                staf_ccs_matrix[row_ind, col_ind], cc_rv)
+
+        return staf_ccs_matrix
+
+    def __create_staf_obs_matrices_normal(self, dep_staf_priors):
         """
         Create observation matrix to select out the flow equations we have
             lognormal observations for
 
         Args
         ---------------
-        staf_obs (list(StafObservations)): List of staf value observations
+        dep_staf_priors (list(DepStafPriors)): List of staf value observations
         Returns
         ---------------
         observed_staf_matrix (np.array):
@@ -594,16 +643,15 @@ class UmisMathModel():
         sds_vector (np.array): The observed standard deviations of the flow
             values
         """
-        num_obs = len(staf_obs)
+        num_obs = len(dep_staf_priors)
         num_procs = len(self.__id_math_process_dict.keys())
 
         observed_staf_matrix = np.zeros((num_obs, num_procs, num_procs))
         means_vector = np.zeros(num_obs)
         sds_vector = np.zeros(num_obs)
-        ccs_vector = np.zeros(num_obs)
 
-        for i, staf_obs in enumerate(staf_obs):
-            staf_prior = staf_obs.staf_prior
+        for i, dep_staf_priors in enumerate(dep_staf_priors):
+            staf_prior = dep_staf_priors.staf_prior
 
             origin_id = staf_prior.origin_id
             origin_index = \
@@ -615,22 +663,19 @@ class UmisMathModel():
 
             observed_staf_matrix[i][origin_index][dest_index] = 1
 
-            cc_rv = staf_obs.cc_prior.create_param_rv()
-
-            ccs_vector[i] = cc_rv
             means_vector[i] = staf_prior.uncertainty.mean
             sds_vector[i] = staf_prior.uncertainty.standard_deviation
 
-        return observed_staf_matrix, means_vector, sds_vector, ccs_vector
+        return observed_staf_matrix, means_vector, sds_vector
 
-    def __create_staf_obs_matrices_uniform(self, staf_obs):
+    def __create_staf_obs_matrices_uniform(self, dep_staf_priors):
         """
         Create observation matrix to select out the flow equations we have
             uniform observations for
 
         Args
         ---------------
-        staf_obs (list(StafObservations)): List of staf value  uniform
+        dep_staf_priors (list(DepStafPriors)): List of staf value  uniform
             observations
 
         Returns
@@ -643,15 +688,14 @@ class UmisMathModel():
         sds_vector (np.array): The observed standard deviations of the flow
             values
         """
-        num_obs = len(staf_obs)
+        num_obs = len(dep_staf_priors)
         num_procs = len(self.__id_math_process_dict.keys())
         observed_staf_matrix = np.zeros((num_obs, num_procs, num_procs))
         lower_vector = np.zeros(num_obs)
         upper_vector = np.zeros(num_obs)
-        ccs_vector = np.zeros(num_obs)
 
-        for i, staf_obs in enumerate(staf_obs):
-            staf_prior = staf_obs.staf_prior
+        for i, dep_staf_priors in enumerate(dep_staf_priors):
+            staf_prior = dep_staf_priors.staf_prior
 
             origin_id = staf_prior.origin_id
             origin_index = \
@@ -663,14 +707,12 @@ class UmisMathModel():
 
             observed_staf_matrix[i][origin_index][dest_index] = 1
 
-            cc_rv = staf_obs.cc_prior.create_param_rv()
-            ccs_vector[i] = cc_rv
             lower_vector[i] = staf_prior.uncertainty.lower
             upper_vector[i] = staf_prior.uncertainty.upper
 
-        return observed_staf_matrix, lower_vector, upper_vector, ccs_vector
+        return observed_staf_matrix, lower_vector, upper_vector
 
-    def __create_staf_observations(
+    def __create_dependent_staf_priors(
             self,
             process_stafs_dict: Dict[str, Set[Staf]],
             external_outflows: Set[Flow]):
@@ -686,10 +728,10 @@ class UmisMathModel():
         external_outflows (set(flow)): The outflows from inside the model to a
             process outside the model
         """
-        self.__create_staf_obs_from_internal_stafs(process_stafs_dict)
-        self.__create_staf_obs_from_external_outflows(external_outflows)
+        self.__create_dep_staf_priors_from_internal_stafs(process_stafs_dict)
+        self.__create_dep_staf_priors_from_external_outflows(external_outflows)
 
-    def __create_staf_obs_from_external_outflows(
+    def __create_dep_staf_priors_from_external_outflows(
             self,
             external_outflows: Set[Flow]):
         """
@@ -713,15 +755,15 @@ class UmisMathModel():
                     dest_id = outflow.destination_process.diagram_id
                     staf_uncert = value.uncertainty
                     cc_uncert = Constant(1)
-                    
-                    self.__staf_observations.add_staf_observation(
+
+                    self.__dep_staf_priors.add_dep_staf_prior(
                         origin_id,
                         dest_id,
                         staf_uncert,
                         cc_uncert)
 
                 else:
-                    
+
                     staf_value, cc_uncert = \
                         self.__material_reconciliation(outflow)
 
@@ -730,7 +772,7 @@ class UmisMathModel():
 
                         staf_uncert = staf_value.uncertainty
 
-                        self.__staf_observations.add_staf_observation(
+                        self.__dep_staf_priors.add_dep_staf_prior(
                             origin_id,
                             dest_id,
                             staf_uncert,
@@ -741,7 +783,7 @@ class UmisMathModel():
 
                     continue
 
-    def __create_staf_obs_from_internal_stafs(
+    def __create_dep_staf_priors_from_internal_stafs(
             self,
             process_stafs_dict: Dict[str, ProcessOutputs]):
         """
@@ -759,17 +801,17 @@ class UmisMathModel():
                 # Checks flow is about correct reference time
                 if flow.staf_reference.time == self.reference_time:
 
+                    origin_id = flow.origin_process.diagram_id
+                    dest_id = flow.destination_process.diagram_id
+
                     value = flow.get_value(self.reference_material)
                     # Checks flow has an entry for the reference material
                     if value:
 
-                        origin_id = origin_process.diagram_id
-                        dest_id = flow.destination_process.diagram_id
-
                         staf_uncert = value.uncertainty
                         cc_uncert = Constant(1)
 
-                        self.__staf_observations.add_staf_observation(
+                        self.__dep_staf_priors.add_dep_staf_prior(
                             origin_id,
                             dest_id,
                             staf_uncert,
@@ -784,7 +826,7 @@ class UmisMathModel():
 
                             staf_uncert = staf_value.uncertainty
 
-                            self.__staf_observations.add_staf_observation(
+                            self.__dep_staf_priors.add_dep_staf_prior(
                                 origin_id,
                                 dest_id,
                                 staf_uncert,
@@ -815,13 +857,12 @@ class UmisMathModel():
 
                     if value.stock_type == 'Net':
 
-                        origin_id = origin_process.diagram_id
+                        origin_id = stock.origin_process.diagram_id
                         dest_id = stock.destination_process.diagram_id
 
                         staf_uncert = value.uncertainty
 
-                        if origin_process.process_type == 'Storage':
-
+                        if stock.origin_process.process_type == 'Storage':
                             self.__add_stock_input_prior(
                                 origin_id,
                                 dest_id,
@@ -829,7 +870,7 @@ class UmisMathModel():
                                 cc_uncert)
 
                         else:
-                            self.__staf_observations.add_staf_observation(
+                            self.__dep_staf_priors.add_dep_staf_prior(
                                 origin_id,
                                 dest_id,
                                 staf_uncert,
@@ -1025,7 +1066,7 @@ class MathDistributionProcess(MathProcess):
         else:
             random_variable = pm.Dirichlet(
                 "P_{}".format(self.process_id), shares)
-        
+
         return outflow_process_ids, random_variable
 
 
@@ -1078,7 +1119,7 @@ class MathTransformationProcess(MathProcess):
         assert (self.n_outflows == len(self.process_outflow_tcs))
 
         if (self.n_outflows == 0):
-            
+
             return [], 0
 
         if self.n_outflows == 1:
@@ -1291,10 +1332,10 @@ class InputPrior():
         self.cc_prior = cc_prior
 
 
-class StafObservation():
+class DepStafPrior():
     """
     Stores the observation of the staf value and its concentration coefficient
-    
+
     Attributes
     -------------
     staf_prior (ParamPrior): Observation of staf value
@@ -1315,17 +1356,17 @@ class StafObservation():
         self.cc_prior = cc_prior
 
 
-class StafObservations():
+class DepStafPriors():
     """
     Stores all dependent parameter observations and applies them to the model
     """
 
     def __init__(self):
-        self.normal_staf_obs: List[StafObservation] = []
-        self.lognormal_staf_obs: List[StafObservation] = []
-        self.uniform_staf_obs: List[StafObservation] = []
+        self.normal_dep_staf_priors: List[DepStafPrior] = []
+        self.lognormal_dep_staf_priors: List[DepStafPrior] = []
+        self.uniform_dep_staf_priors: List[DepStafPrior] = []
 
-    def add_staf_observation(
+    def add_dep_staf_prior(
             self,
             origin_id: str,
             dest_id: str,
@@ -1348,20 +1389,20 @@ class StafObservations():
         cc_prior = ParamPrior(
             "CC Observation", origin_id, dest_id, cc_uncert)
 
-        staf_observation = StafObservation(staf_prior, cc_prior)
+        dep_staf_prior = DepStafPrior(staf_prior, cc_prior)
         if staf_uncert is None:
             return
         if isinstance(staf_uncert, NormalUncertainty):
-            self.normal_staf_obs.append(staf_observation)
+            self.normal_dep_staf_priors.append(dep_staf_prior)
         elif isinstance(staf_uncert, LognormalUncertainty):
-            self.lognormal_staf_obs.append(staf_observation)
+            self.lognormal_dep_staf_priors.append(dep_staf_prior)
         elif isinstance(staf_uncert, UniformUncertainty):
-            self.uniform_staf_obs.append(staf_observation)
+            self.uniform_dep_staf_priors.append(dep_staf_prior)
         else:
             raise ValueError("Staf observation has uncertainty of unsupported"
                              + "distribution, instead was {}"
                              .format(type(staf_uncert)))
-        
+
 
 if __name__ == '__main__':
     sys.exit(1)
