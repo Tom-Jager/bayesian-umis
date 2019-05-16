@@ -36,7 +36,7 @@
 
 % load base class, then general-purpose packages
 
-\LoadClass[10pt,a4paper,twoside]{book}
+\LoadClass[10pt,a4paper,oneside]{book}
 
 % http://www.ctan.org/tex-archive/macros/latex/required/graphics
 \RequirePackage{graphicx}
@@ -73,7 +73,13 @@
 \RequirePackage{bm}
 \RequirePackage{caption}
 \RequirePackage[parfill]{parskip}
-
+\RequirePackage[normalem]{ulem}
+\RequirePackage{longtable}
+\RequirePackage{booktabs}
+\RequirePackage[english]{babel}
+\RequirePackage{csquotes}
+\MakeOuterQuote{"}
+\RequirePackage{setspace}
 
 % =============================================================================
 
@@ -164,7 +170,7 @@
                               \vspace*{1.0cm}
                           DEPARTMENT OF COMPUTER SCIENCE                        \\
                               \vspace*{2.0cm}
-  \mbox{\IfEq{\dissertation@title@major}{}{}{\LARGE \dissertation@title@major}} \\
+  \IfEq{\dissertation@title@major}{}{}{\LARGE \dissertation@title@major} \\
                               \vspace*{0.5cm}
   \mbox{\IfEq{\dissertation@title@minor}{}{}{\Large \dissertation@title@minor}} \\
                               \vspace*{1.0cm}
